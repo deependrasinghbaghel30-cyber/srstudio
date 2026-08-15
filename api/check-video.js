@@ -2,40 +2,28 @@
 
 export const runtime = 'nodejs';
 
-export default async function handler(request) {
+export default async function handler(req, res) {
   const key = process.env.FAL_KEY;
 
   if (!key) {
-    return json(
-      { error: 'Server not configured: FAL_KEY missing.' },
-      500
-    );
+    return res.status(500).json({
+      error: 'Server not configured: FAL_KEY missing.',
+    });
   }
 
   try {
-    // Vercel can provide request.url as a relative path.
-    // Build a valid absolute URL when necessary.
-    const host =
-      request.headers?.host ||
-      request.headers?.get?.('host') ||
-      'localhost';
-
-    const baseUrl = `https://${host}`;
-
-    const url = new URL(request.url, baseUrl);
+    const host = req.headers.host || 'localhost';
+    const url = new URL(req.url, `https://${host}`);
 
     const requestId = url.searchParams.get('request_id');
     const model = url.searchParams.get('model');
 
     if (!requestId || !model) {
-      return json(
-        {
-          error: 'Missing request_id or model.',
-          received_request_id: requestId,
-          received_model: model,
-        },
-        400
-      );
+      return res.status(400).json({
+        error: 'Missing request_id or model.',
+        received_request_id: requestId,
+        received_model: model,
+      });
     }
 
     // Check fal.ai queue status
@@ -61,21 +49,18 @@ export default async function handler(request) {
     }
 
     if (!statusRes.ok) {
-      return json(
-        {
-          error:
-            status?.detail ||
-            status?.message ||
-            `fal.ai status check failed (${statusRes.status})`,
-          fal_status: statusRes.status,
-          raw: status,
-        },
-        statusRes.status
-      );
+      return res.status(statusRes.status).json({
+        error:
+          status?.detail ||
+          status?.message ||
+          `fal.ai status check failed (${statusRes.status})`,
+        fal_status: statusRes.status,
+        raw: status,
+      });
     }
 
     if (!status) {
-      return json({
+      return res.status(200).json({
         status: 'IN_PROGRESS',
       });
     }
@@ -86,7 +71,7 @@ export default async function handler(request) {
       status.status === 'IN_QUEUE' ||
       status.status === 'QUEUED'
     ) {
-      return json({
+      return res.status(200).json({
         status: status.status,
       });
     }
@@ -96,16 +81,13 @@ export default async function handler(request) {
       status.status === 'FAILED' ||
       status.status === 'ERROR'
     ) {
-      return json(
-        {
-          error:
-            status.error ||
-            status.detail ||
-            'fal.ai reported the generation failed.',
-          raw: status,
-        },
-        502
-      );
+      return res.status(502).json({
+        error:
+          status.error ||
+          status.detail ||
+          'fal.ai reported the generation failed.',
+        raw: status,
+      });
     }
 
     // Completed — fetch actual result
@@ -132,17 +114,14 @@ export default async function handler(request) {
       }
 
       if (!resultRes.ok) {
-        return json(
-          {
-            error:
-              result?.detail ||
-              result?.message ||
-              `fal.ai result fetch failed (${resultRes.status})`,
-            fal_status: resultRes.status,
-            raw: result,
-          },
-          resultRes.status
-        );
+        return res.status(resultRes.status).json({
+          error:
+            result?.detail ||
+            result?.message ||
+            `fal.ai result fetch failed (${resultRes.status})`,
+          fal_status: resultRes.status,
+          raw: result,
+        });
       }
 
       const videoUrl =
@@ -152,34 +131,28 @@ export default async function handler(request) {
         null;
 
       if (!videoUrl) {
-        return json(
-          {
-            error:
-              'Video completed but no video URL was returned by fal.ai.',
-            raw: result,
-          },
-          502
-        );
+        return res.status(502).json({
+          error:
+            'Video completed but no video URL was returned by fal.ai.',
+          raw: result,
+        });
       }
 
-      return json({
+      return res.status(200).json({
         status: 'COMPLETED',
         videoUrl,
       });
     }
 
-    return json({
+    return res.status(200).json({
       status: status.status || 'IN_PROGRESS',
     });
   } catch (error) {
-    return json(
-      {
-        error:
-          'Status check failed: ' +
-          (error?.message || String(error)),
-      },
-      502
-    );
+    return res.status(502).json({
+      error:
+        'Status check failed: ' +
+        (error?.message || String(error)),
+    });
   }
 }
 
@@ -204,19 +177,13 @@ async function fetchWithTimeout(
   }
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store',
-    },
-  });
-}
-
-            
+      
 
 
+
+  
+
+  
       
 
   
