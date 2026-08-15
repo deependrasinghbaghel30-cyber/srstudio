@@ -1,90 +1,259 @@
 // api/generate-video.js
-// Starts a video generation job on fal.ai and returns a request_id.
-// The API key stays on the server (set as FAL_KEY in Vercel env vars) — never in the browser.
+// Starts video generation jobs on fal.ai.
+// The API key stays on the server in Vercel FAL_KEY.
 
 export const config = { runtime: 'edge' };
 
-// Which fal.ai model to use for each engine + mode.
-// kling = Kling 2.6 Pro — cinematic, now WITH native audio (voice/dialogue), cheaper than Veo
-// veo   = Veo 3, with sound/dialogue, premium
+// fal.ai models
 const MODELS = {
   kling: {
     image: 'fal-ai/kling-video/v2.6/pro/image-to-video',
-    text:  'fal-ai/kling-video/v2.6/pro/text-to-video',
+    text: 'fal-ai/kling-video/v2.6/pro/text-to-video',
   },
   veo: {
     image: 'fal-ai/veo3/image-to-video',
-    text:  'fal-ai/veo3',
+    text: 'fal-ai/veo3',
   },
 };
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405);
+    return json(
+      { error: 'Method not allowed' },
+      405
+    );
   }
 
   const key = process.env.FAL_KEY;
+
   if (!key) {
-    return json({ error: 'Server not configured: FAL_KEY missing.' }, 500);
+    return json(
+      { error: 'Server not configured: FAL_KEY missing.' },
+      500
+    );
   }
 
   let body;
+
   try {
     body = await req.json();
   } catch {
-    return json({ error: 'Invalid request body.' }, 400);
+    return json(
+      { error: 'Invalid request body.' },
+      400
+    );
   }
 
-  const { mode, engine, prompt, imageDataUrl, imageDataUrls, aspect } = body || {};
-  // Map neutral UI labels to providers (kept server-side so the UI never exposes them)
-  const eng = engine === 'cinematic-pro' ? 'veo' : 'kling';
-  const model = MODELS[eng] && MODELS[eng][mode];
-  if (!model) return json({ error: 'Unknown mode/engine.' }, 400);
+  const {
+    mode,
+    engine,
+    prompt,
+    imageDataUrl,
+    imageDataUrls,
+    aspect,
+  } = body || {};
 
-  const ratio = ['9:16','1:1','16:9'].includes(aspect) ? aspect : '9:16';
+  // Map UI engine names to actual providers.
+  const eng =
+    engine === 'cinematic-pro'
+      ? 'veo'
+      : 'kling';
 
-  // Collect images: support single (imageDataUrl) or multiple (imageDataUrls[])
-  const imgs = Array.isArray(imageDataUrls) && imageDataUrls.length
-    ? imageDataUrls
-    : (imageDataUrl ? [imageDataUrl] : []);
+  const model =
+    MODELS[eng] &&
+    MODELS[eng][mode];
 
-  // Build one job per clip. For text mode, a single job.
+  if (!model) {
+    return json(
+      {
+        error: 'Unknown mode/engine.',
+        mode,
+        engine,
+      },
+      400
+    );
+  }
+
+  const ratio =
+    ['9:16', '1:1', '16:9'].includes(aspect)
+      ? aspect
+      : '9:16';
+
+  // Collect images.
+  const imgs =
+    Array.isArray(imageDataUrls) &&
+    imageDataUrls.length
+      ? imageDataUrls
+      : imageDataUrl
+        ? [imageDataUrl]
+        : [];
+
+  // Build jobs.
   const jobs = [];
+
   if (mode === 'image') {
-    if (!imgs.length) return json({ error: 'No image provided.' }, 400);
+    if (!imgs.length) {
+      return json(
+        { error: 'No image provided.' },
+        400
+      );
+    }
+
     for (const img of imgs) {
-      const input = { prompt: prompt || 'Cinematic real estate shot, slow smooth camera motion, warm natural light, premium look', duration: '5', aspect_ratio: ratio, generate_audio: true };
-      // Kling 2.6 uses start_image_url; Veo uses image_url. Set both is harmless (extra keys ignored),
-      // but we set the correct one per engine to be safe.
-      if (eng === 'kling') input.start_image_url = img; else input.image_url = img;
+      const input = {
+        prompt:
+          prompt ||
+          'Cinematic real estate shot, slow smooth camera motion, warm natural light, premium look',
+        duration: '5',
+        aspect_ratio: ratio,
+        generate_audio: true,
+      };
+
+      if (eng === 'kling') {
+        input.start_image_url = img;
+      } else {
+        input.image_url = img;
+      }
+
       jobs.push(input);
     }
   } else {
-    jobs.push({ prompt: prompt || '', duration: '5', aspect_ratio: ratio, generate_audio: true });
+    jobs.push({
+      prompt: prompt || '',
+      duration: '5',
+      aspect_ratio: ratio,
+      generate_audio: true,
+    });
   }
 
   try {
     const started = [];
+
     for (const input of jobs) {
-      const res = await fetch(`https://queue.fal.run/${model}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Key ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
+      const res = await fetch(
+        `https://queue.fal.run/${model}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Key ${key}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(input),
+        }
+      );
+
+      const text = await res.text();
+
+      let data;
+
+      try {
+        data = text
+          ? JSON.parse(text)
+          : null;
+      } catch {
+        data = text;
+      }
+
+      if (!res.ok) {
+        return json(
+          {
+            error:
+              data?.detail ||
+              data?.message ||
+              'fal.ai request failed.',
+            fal_status: res.status,
+            fal_response: data,
+            model,
+          },
+          res.status
+        );
+      }
+
+      if (!data?.request_id) {
+        return json(
+          {
+            error:
+              'fal.ai did not return a request_id.',
+            fal_response: data,
+            model,
+          },
+          502
+        );
+      }
+
+      // IMPORTANT:
+      // Keep fal.ai's own URLs exactly as returned.
+      started.push({
+        request_id: data.request_id,
+
+        status_url:
+          data.status_url || null,
+
+        response_url:
+          data.response_url || null,
+
+        cancel_url:
+          data.cancel_url || null,
       });
-      const data = await res.json();
-      if (!res.ok) return json({ error: data?.detail || 'fal.ai request failed.', raw: data }, res.status);
-      started.push(data.request_id);
     }
-    // Return all request_ids + the model so the client can poll each
-    return json({ request_ids: started, model });
-  } catch (e) {
-    return json({ error: 'Could not reach fal.ai: ' + e.message }, 502);
+
+    // Return the complete queue information.
+    return json({
+      success: true,
+
+      engine: eng,
+
+      mode,
+
+      model,
+
+      jobs: started,
+
+      // Backward compatibility for the existing frontend.
+      request_ids: started.map(
+        (job) => job.request_id
+      ),
+
+      status_urls: started.map(
+        (job) => job.status_url
+      ),
+
+      response_urls: started.map(
+        (job) => job.response_url
+      ),
+    });
+
+  } catch (error) {
+    return json(
+      {
+        error:
+          'Could not reach fal.ai.',
+        message:
+          error?.message ||
+          String(error),
+      },
+      502
+    );
   }
 }
 
-function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
+function json(
+  obj,
+  status = 200
+) {
+  return new Response(
+    JSON.stringify(obj),
+    {
+      status,
+      headers: {
+        'Content-Type':
+          'application/json',
+        'Cache-Control':
+          'no-store',
+      },
+    }
+  );
 }
+
+  
