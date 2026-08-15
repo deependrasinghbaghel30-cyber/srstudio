@@ -1,93 +1,349 @@
-// api/generate-copy.js
-// Generates marketing copy (headline, WhatsApp message, NRI pitch, caption)
-// using an LLM. Key stays on the server.
+// api/generate-video.js
 //
-// Uses an OpenAI-compatible endpoint so it works with either:
-//   - fal.ai's LLM route, or
-//   - AICredits (UPI billing) — just set COPY_BASE_URL + COPY_KEY accordingly.
-// Defaults are set for AICredits since copy is cheap and UPI is easier.
+// Starts video generation jobs on fal.ai.
+// Returns request_id + status_url + response_url for every job.
+//
+// FAL_KEY stays server-side in Vercel environment variables.
 
-export const config = { runtime: 'edge' };
+export const config = {
+  runtime: 'nodejs',
+};
 
-export default async function handler(req) {
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+// --------------------------------------------------
+// FAL.AI MODELS
+// --------------------------------------------------
 
-  const key = process.env.COPY_KEY;
-  const baseUrl = process.env.COPY_BASE_URL || 'https://api.aicredits.in/v1';
-  const model = process.env.COPY_MODEL || 'claude-3-5-sonnet';
-  if (!key) return json({ error: 'Server not configured: COPY_KEY missing.' }, 500);
+const MODELS = {
+  kling: {
+    image: 'fal-ai/kling-video/v2.6/pro/image-to-video',
+    text: 'fal-ai/kling-video/v2.6/pro/text-to-video',
+  },
+
+  veo: {
+    image: 'fal-ai/veo3/image-to-video',
+    text: 'fal-ai/veo3',
+  },
+};
+
+// --------------------------------------------------
+// MAIN HANDLER
+// --------------------------------------------------
+
+export default async function handler(req, res) {
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      error: 'Method not allowed.',
+    });
+  }
+
+  const key = process.env.FAL_KEY;
+
+  if (!key) {
+    return res.status(500).json({
+      error: 'Server not configured: FAL_KEY missing in Vercel.',
+    });
+  }
+
+  // ------------------------------------------------
+  // READ REQUEST BODY
+  // ------------------------------------------------
 
   let body;
-  try { body = await req.json(); } catch { return json({ error: 'Invalid body.' }, 400); }
-
-  const { ptype, details, instructions } = body || {};
-  const detailLines = (details || [])
-    .filter(d => d.label || d.value)
-    .map(d => `${d.label}: ${d.value}`)
-    .join('\n');
-
-  const typeLabel = ptype === 'residential' ? 'residential' : 'commercial';
-
-  const systemPrompt =
-    `You are a marketing copywriter for a Pune-based ${typeLabel} real estate broker who works with NRI and HNI investors. ` +
-    `Write crisp, premium, WhatsApp-friendly copy. Avoid hype and clichés. Use Indian real estate context. ` +
-    `Return ONLY valid JSON, no markdown, no preamble, with exactly these keys: ` +
-    `"headline" (max 8 words), "whatsapp" (2-3 short lines, ready to paste, may use 1-2 emojis), ` +
-    `"nri_pitch" (2-3 lines aimed at an NRI investor, focus on yield/appreciation/trust), ` +
-    `"caption" (one short social caption with 2-3 relevant hashtags).`;
-
-  const userPrompt =
-    `Property type: ${typeLabel}\n` +
-    `Details:\n${detailLines || '(no details provided)'}\n` +
-    (instructions ? `\nExtra instructions from the broker (follow these closely):\n${instructions}\n` : '') +
-    `\nWrite the copy now as JSON.`;
 
   try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 700,
-        temperature: 0.6,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
+    body = typeof req.body === 'string'
+      ? JSON.parse(req.body)
+      : req.body;
+  } catch (error) {
+    return res.status(400).json({
+      error: 'Invalid JSON request body.',
+    });
+  }
+
+  const {
+    mode,
+    engine,
+    prompt,
+    imageDataUrl,
+    imageDataUrls,
+    aspect,
+  } = body || {};
+
+  // ------------------------------------------------
+  // MAP UI ENGINE → FAL ENGINE
+  // ------------------------------------------------
+
+  const eng =
+    engine === 'cinematic-pro'
+      ? 'veo'
+      : 'kling';
+
+  const model =
+    MODELS[eng] &&
+    MODELS[eng][mode];
+
+  if (!model) {
+    return res.status(400).json({
+      error: 'Unknown mode or engine.',
+      mode,
+      engine,
+    });
+  }
+
+  // ------------------------------------------------
+  // ASPECT RATIO
+  // ------------------------------------------------
+
+  const ratio =
+    ['9:16', '1:1', '16:9'].includes(aspect)
+      ? aspect
+      : '9:16';
+
+  // ------------------------------------------------
+  // COLLECT IMAGES
+  // ------------------------------------------------
+
+  const imgs =
+    Array.isArray(imageDataUrls) &&
+    imageDataUrls.length
+      ? imageDataUrls
+      : imageDataUrl
+        ? [imageDataUrl]
+        : [];
+
+  // ------------------------------------------------
+  // BUILD JOB INPUTS
+  // ------------------------------------------------
+
+  const jobs = [];
+
+  if (mode === 'image') {
+
+    if (!imgs.length) {
+      return res.status(400).json({
+        error: 'No image provided.',
+      });
+    }
+
+    for (const img of imgs) {
+
+      const input = {
+        prompt:
+          prompt ||
+          'Cinematic real estate shot, slow smooth camera motion, warm natural light, premium look',
+
+        duration: '5',
+
+        aspect_ratio: ratio,
+
+        generate_audio: true,
+      };
+
+      // Kling expects start_image_url
+      if (eng === 'kling') {
+        input.start_image_url = img;
+      }
+
+      // Veo expects image_url
+      else {
+        input.image_url = img;
+      }
+
+      jobs.push(input);
+    }
+
+  } else {
+
+    // TEXT → VIDEO
+
+    jobs.push({
+      prompt: prompt || '',
+
+      duration: '5',
+
+      aspect_ratio: ratio,
+
+      generate_audio: true,
+    });
+  }
+
+  // ------------------------------------------------
+  // SUBMIT ALL JOBS
+  // ------------------------------------------------
+
+  try {
+
+    const started = [];
+
+    for (const input of jobs) {
+
+      const falRes = await fetch(
+        `https://queue.fal.run/${model}`,
+        {
+          method: 'POST',
+
+          headers: {
+            Authorization: `Key ${key}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+
+          body: JSON.stringify(input),
+        }
+      );
+
+      // Read response safely
+      const text = await falRes.text();
+
+      let data;
+
+      try {
+        data = text
+          ? JSON.parse(text)
+          : null;
+      } catch {
+        data = text;
+      }
+
+      // ------------------------------------------------
+      // FAL REQUEST FAILED
+      // ------------------------------------------------
+
+      if (!falRes.ok) {
+
+        return res.status(502).json({
+          error:
+            data?.detail ||
+            data?.error ||
+            'fal.ai request failed.',
+
+          fal_status: falRes.status,
+
+          fal_status_text: falRes.statusText,
+
+          model,
+
+          fal_response: data,
+        });
+      }
+
+      // ------------------------------------------------
+      // VALIDATE FAL RESPONSE
+      // ------------------------------------------------
+
+      if (!data || !data.request_id) {
+
+        return res.status(502).json({
+          error:
+            'fal.ai accepted the request but did not return request_id.',
+
+          model,
+
+          fal_response: data,
+        });
+      }
+
+      // ------------------------------------------------
+      // IMPORTANT
+      //
+      // fal.ai REST queue response provides:
+      //
+      // request_id
+      // status_url
+      // response_url
+      //
+      // We pass ALL of them to the browser.
+      // ------------------------------------------------
+
+      const requestId =
+        data.request_id;
+
+      const statusUrl =
+        data.status_url ||
+        `https://queue.fal.run/${model}/requests/${requestId}/status`;
+
+      const responseUrl =
+        data.response_url ||
+        `https://queue.fal.run/${model}/requests/${requestId}`;
+
+      started.push({
+
+        request_id:
+          requestId,
+
+        status_url:
+          statusUrl,
+
+        response_url:
+          responseUrl,
+
+        status:
+          data.status ||
+          'IN_QUEUE',
+
+        queue_position:
+          data.queue_position ?? null,
+      });
+    }
+
+    // ------------------------------------------------
+    // FINAL RESPONSE TO INDEX.HTML
+    // ------------------------------------------------
+
+    return res.status(200).json({
+
+      jobs: started,
+
+      // Keep these fields too for compatibility
+      // with the current index.html.
+
+      request_ids:
+        started.map(
+          job => job.request_id
+        ),
+
+      status_urls:
+        started.map(
+          job => job.status_url
+        ),
+
+      response_urls:
+        started.map(
+          job => job.response_url
+        ),
+
+      model,
+
+      engine: eng,
+
+      mode,
+
+      count: started.length,
     });
 
-    const data = await res.json();
-    if (!res.ok) return json({ error: data?.error?.message || 'Copy request failed.', raw: data }, res.status);
+  } catch (error) {
 
-    const text = data?.choices?.[0]?.message?.content || '';
-    const parsed = safeParseJson(text);
-    if (!parsed) return json({ error: 'Copy came back in an unexpected format.', raw: text }, 502);
+    console.error(
+      'generate-video error:',
+      error
+    );
 
-    return json({ copy: parsed });
-  } catch (e) {
-    return json({ error: 'Could not reach copy service: ' + e.message }, 502);
+    return res.status(502).json({
+
+      error:
+        'Could not reach fal.ai.',
+
+      message:
+        error?.message ||
+        String(error),
+
+      model,
+
+      engine: eng,
+
+      mode,
+    });
   }
 }
 
-function safeParseJson(text) {
-  // Strip code fences if the model added them, then parse.
-  const cleaned = String(text).replace(/```json/gi, '').replace(/```/g, '').trim();
-  try { return JSON.parse(cleaned); }
-  catch {
-    // Try to grab the first {...} block
-    const m = cleaned.match(/\{[\s\S]*\}/);
-    if (m) { try { return JSON.parse(m[0]); } catch {} }
-    return null;
-  }
-}
-
-function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
