@@ -12,29 +12,37 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Build absolute URL safely
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `https://${host}`);
 
     const requestId = url.searchParams.get('request_id');
-    const model = url.searchParams.get('model');
 
-    if (!requestId || !model) {
+    // IMPORTANT:
+    // These URLs must come from fal.ai's original queue response.
+    const statusUrl = url.searchParams.get('status_url');
+    const responseUrl = url.searchParams.get('response_url');
+
+    if (!requestId) {
       return res.status(400).json({
-        error: 'Missing request_id or model.',
+        error: 'Missing request_id.',
         request_id: requestId,
-        model: model,
+      });
+    }
+
+    if (!statusUrl) {
+      return res.status(400).json({
+        error: 'Missing status_url.',
+        request_id: requestId,
+        message:
+          'Frontend must pass the exact status_url returned by fal.ai when the job was created.',
       });
     }
 
     // --------------------------------------------------
-    // FAL.AI STATUS URL
+    // CHECK FAL.AI STATUS
     // --------------------------------------------------
 
-    const falUrl =
-      `https://queue.fal.run/${model}/requests/${requestId}/status`;
-
-    const falRes = await fetch(falUrl, {
+    const falRes = await fetch(statusUrl, {
       method: 'GET',
       headers: {
         Authorization: `Key ${key}`,
@@ -44,7 +52,7 @@ export default async function handler(req, res) {
 
     const falText = await falRes.text();
 
-    let falBody;
+    let falBody = null;
 
     try {
       falBody = falText ? JSON.parse(falText) : null;
@@ -53,23 +61,16 @@ export default async function handler(req, res) {
     }
 
     // --------------------------------------------------
-    // IMPORTANT DIAGNOSTIC RESPONSE
+    // FAL ERROR
     // --------------------------------------------------
 
     if (!falRes.ok) {
       return res.status(502).json({
         error: 'fal.ai returned an error.',
-
         fal_status: falRes.status,
-
         fal_status_text: falRes.statusText,
-
-        fal_url: falUrl,
-
-        model: model,
-
+        status_url: statusUrl,
         request_id: requestId,
-
         fal_response: falBody,
       });
     }
@@ -81,7 +82,7 @@ export default async function handler(req, res) {
     if (!falBody) {
       return res.status(200).json({
         status: 'IN_PROGRESS',
-        fal_status: falRes.status,
+        request_id: requestId,
       });
     }
 
@@ -96,6 +97,7 @@ export default async function handler(req, res) {
     ) {
       return res.status(200).json({
         status: falBody.status,
+        request_id: requestId,
       });
     }
 
@@ -112,9 +114,8 @@ export default async function handler(req, res) {
           falBody.error ||
           falBody.detail ||
           'fal.ai reported that generation failed.',
-
-        fal_status: falRes.status,
-
+        status: 'FAILED',
+        request_id: requestId,
         raw: falBody,
       });
     }
@@ -124,10 +125,18 @@ export default async function handler(req, res) {
     // --------------------------------------------------
 
     if (falBody.status === 'COMPLETED') {
-      const resultUrl =
-        `https://queue.fal.run/${model}/requests/${requestId}`;
 
-      const resultRes = await fetch(resultUrl, {
+      // Prefer the exact response_url returned by fal.ai.
+      if (!responseUrl) {
+        return res.status(502).json({
+          error: 'Generation completed but response_url is missing.',
+          request_id: requestId,
+          status: 'COMPLETED',
+          raw: falBody,
+        });
+      }
+
+      const resultRes = await fetch(responseUrl, {
         method: 'GET',
         headers: {
           Authorization: `Key ${key}`,
@@ -137,7 +146,7 @@ export default async function handler(req, res) {
 
       const resultText = await resultRes.text();
 
-      let resultBody;
+      let resultBody = null;
 
       try {
         resultBody = resultText
@@ -147,43 +156,46 @@ export default async function handler(req, res) {
         resultBody = resultText;
       }
 
-      // Result request failed
+      // ------------------------------------------------
+      // RESULT REQUEST FAILED
+      // ------------------------------------------------
+
       if (!resultRes.ok) {
         return res.status(502).json({
           error: 'fal.ai result request failed.',
-
           fal_status: resultRes.status,
-
           fal_status_text: resultRes.statusText,
-
-          fal_url: resultUrl,
-
+          response_url: responseUrl,
+          request_id: requestId,
           fal_response: resultBody,
         });
       }
 
-      // --------------------------------------------------
+      // ------------------------------------------------
       // FIND VIDEO URL
-      // --------------------------------------------------
+      // ------------------------------------------------
 
       const videoUrl =
         resultBody?.video?.url ||
         resultBody?.data?.video?.url ||
         resultBody?.output?.video?.url ||
+        resultBody?.video_url ||
+        resultBody?.data?.video_url ||
         null;
 
       if (!videoUrl) {
         return res.status(502).json({
           error:
             'Generation completed but video URL was not found.',
-
+          request_id: requestId,
           raw: resultBody,
         });
       }
 
       return res.status(200).json({
         status: 'COMPLETED',
-        videoUrl: videoUrl,
+        request_id: requestId,
+        videoUrl,
       });
     }
 
@@ -193,6 +205,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       status: falBody.status || 'IN_PROGRESS',
+      request_id: requestId,
       raw: falBody,
     });
 
@@ -204,6 +217,9 @@ export default async function handler(req, res) {
   }
 }
 
+      
+      
+  
         
 
         
