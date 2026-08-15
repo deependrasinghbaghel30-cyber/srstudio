@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   if (!key) {
     return res.status(500).json({
-      error: 'Server not configured: FAL_KEY missing.',
+      error: 'FAL_KEY is missing on Vercel.',
     });
   }
 
@@ -21,120 +21,122 @@ export default async function handler(req, res) {
     if (!requestId || !model) {
       return res.status(400).json({
         error: 'Missing request_id or model.',
-        received_request_id: requestId,
-        received_model: model,
+        request_id: requestId,
+        model: model,
       });
     }
 
-    // Check fal.ai queue status
-    const statusRes = await fetchWithTimeout(
-      `https://queue.fal.run/${model}/requests/${requestId}/status`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Key ${key}`,
-        },
+    const falUrl =
+      `https://queue.fal.run/${model}/requests/${requestId}/status`;
+
+    const falRes = await fetch(falUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Key ${key}`,
+        Accept: 'application/json',
       },
-      8000
-    );
+    });
 
-    const statusText = await statusRes.text();
+    const falText = await falRes.text();
 
-    let status = null;
+    let falBody = null;
 
     try {
-      status = statusText ? JSON.parse(statusText) : null;
+      falBody = falText ? JSON.parse(falText) : null;
     } catch {
-      status = null;
+      falBody = falText;
     }
 
-    if (!statusRes.ok) {
-      return res.status(statusRes.status).json({
-        error:
-          status?.detail ||
-          status?.message ||
-          `fal.ai status check failed (${statusRes.status})`,
-        fal_status: statusRes.status,
-        raw: status,
+    // IMPORTANT:
+    // For now return the exact fal.ai response so we can see
+    // why it is returning 405.
+    if (!falRes.ok) {
+      return res.status(502).json({
+        error: 'fal.ai returned an error.',
+        fal_status: falRes.status,
+        fal_status_text: falRes.statusText,
+        fal_url: falUrl,
+        model: model,
+        request_id: requestId,
+        fal_response: falBody,
       });
     }
 
-    if (!status) {
+    if (!falBody) {
       return res.status(200).json({
         status: 'IN_PROGRESS',
+        fal_status: falRes.status,
       });
     }
 
     // Still processing
     if (
-      status.status === 'IN_PROGRESS' ||
-      status.status === 'IN_QUEUE' ||
-      status.status === 'QUEUED'
+      falBody.status === 'IN_PROGRESS' ||
+      falBody.status === 'IN_QUEUE' ||
+      falBody.status === 'QUEUED'
     ) {
       return res.status(200).json({
-        status: status.status,
+        status: falBody.status,
       });
     }
 
     // Failed
     if (
-      status.status === 'FAILED' ||
-      status.status === 'ERROR'
+      falBody.status === 'FAILED' ||
+      falBody.status === 'ERROR'
     ) {
       return res.status(502).json({
         error:
-          status.error ||
-          status.detail ||
-          'fal.ai reported the generation failed.',
-        raw: status,
+          falBody.error ||
+          falBody.detail ||
+          'fal.ai reported that generation failed.',
+        raw: falBody,
       });
     }
 
-    // Completed — fetch actual result
-    if (status.status === 'COMPLETED') {
-      const resultRes = await fetchWithTimeout(
-        `https://queue.fal.run/${model}/requests/${requestId}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Key ${key}`,
-          },
+    // Completed
+    if (falBody.status === 'COMPLETED') {
+      const resultUrl =
+        `https://queue.fal.run/${model}/requests/${requestId}`;
+
+      const resultRes = await fetch(resultUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Key ${key}`,
+          Accept: 'application/json',
         },
-        8000
-      );
+      });
 
       const resultText = await resultRes.text();
 
-      let result = null;
+      let resultBody = null;
 
       try {
-        result = resultText ? JSON.parse(resultText) : null;
+        resultBody = resultText ? JSON.parse(resultText) : null;
       } catch {
-        result = null;
+        resultBody = resultText;
       }
 
       if (!resultRes.ok) {
-        return res.status(resultRes.status).json({
-          error:
-            result?.detail ||
-            result?.message ||
-            `fal.ai result fetch failed (${resultRes.status})`,
+        return res.status(502).json({
+          error: 'fal.ai result request failed.',
           fal_status: resultRes.status,
-          raw: result,
+          fal_status_text: resultRes.statusText,
+          fal_url: resultUrl,
+          fal_response: resultBody,
         });
       }
 
       const videoUrl =
-        result?.video?.url ||
-        result?.data?.video?.url ||
-        result?.output?.video?.url ||
+        resultBody?.video?.url ||
+        resultBody?.data?.video?.url ||
+        resultBody?.output?.video?.url ||
         null;
 
       if (!videoUrl) {
         return res.status(502).json({
-          error:
-            'Video completed but no video URL was returned by fal.ai.',
-          raw: result,
+          error: 'Generation completed but video URL was not found.',
+          raw: resultBody,
         });
       }
 
@@ -145,37 +147,21 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      status: status.status || 'IN_PROGRESS',
+      status: falBody.status || 'IN_PROGRESS',
+      raw: falBody,
     });
+
   } catch (error) {
     return res.status(502).json({
-      error:
-        'Status check failed: ' +
-        (error?.message || String(error)),
+      error: 'Server error while checking fal.ai.',
+      message: error?.message || String(error),
     });
   }
 }
 
-async function fetchWithTimeout(
-  url,
-  options = {},
-  timeoutMs = 8000
-) {
-  const controller = new AbortController();
+      
 
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
 
-  try {
-    return await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
       
 
