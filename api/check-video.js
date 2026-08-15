@@ -1,10 +1,6 @@
 
 // api/check-video.js
 
-export const config = {
-  runtime: 'edge',
-};
-
 export default {
   async fetch(request) {
     const key = process.env.FAL_KEY;
@@ -28,20 +24,22 @@ export default {
     }
 
     try {
-      // Check fal.ai queue status
-      const statusRes = await fetch(
+      // Check fal.ai queue status with a timeout.
+      const statusRes = await fetchWithTimeout(
         `https://queue.fal.run/${model}/requests/${requestId}/status`,
         {
           method: 'GET',
           headers: {
             Authorization: `Key ${key}`,
           },
-        }
+        },
+        8000
       );
 
       const statusText = await statusRes.text();
 
-      let status;
+      let status = null;
+
       try {
         status = statusText ? JSON.parse(statusText) : null;
       } catch {
@@ -66,7 +64,7 @@ export default {
         return json({ status: 'IN_PROGRESS' });
       }
 
-      // Still processing
+      // Still processing.
       if (
         status.status === 'IN_PROGRESS' ||
         status.status === 'IN_QUEUE' ||
@@ -77,7 +75,7 @@ export default {
         });
       }
 
-      // Failed
+      // Failed.
       if (
         status.status === 'FAILED' ||
         status.status === 'ERROR'
@@ -94,21 +92,23 @@ export default {
         );
       }
 
-      // Completed — fetch the actual result
+      // Completed — fetch the actual result.
       if (status.status === 'COMPLETED') {
-        const resultRes = await fetch(
+        const resultRes = await fetchWithTimeout(
           `https://queue.fal.run/${model}/requests/${requestId}`,
           {
             method: 'GET',
             headers: {
               Authorization: `Key ${key}`,
             },
-          }
+          },
+          8000
         );
 
         const resultText = await resultRes.text();
 
-        let result;
+        let result = null;
+
         try {
           result = resultText ? JSON.parse(resultText) : null;
         } catch {
@@ -168,13 +168,34 @@ export default {
   },
 };
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
     },
   });
 }
+      
 
-    
+            
+
+          
