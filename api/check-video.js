@@ -12,6 +12,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Build absolute URL safely
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `https://${host}`);
 
@@ -26,6 +27,10 @@ export default async function handler(req, res) {
       });
     }
 
+    // --------------------------------------------------
+    // FAL.AI STATUS URL
+    // --------------------------------------------------
+
     const falUrl =
       `https://queue.fal.run/${model}/requests/${requestId}/status`;
 
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
 
     const falText = await falRes.text();
 
-    let falBody = null;
+    let falBody;
 
     try {
       falBody = falText ? JSON.parse(falText) : null;
@@ -47,20 +52,31 @@ export default async function handler(req, res) {
       falBody = falText;
     }
 
-    // IMPORTANT:
-    // For now return the exact fal.ai response so we can see
-    // why it is returning 405.
+    // --------------------------------------------------
+    // IMPORTANT DIAGNOSTIC RESPONSE
+    // --------------------------------------------------
+
     if (!falRes.ok) {
       return res.status(502).json({
         error: 'fal.ai returned an error.',
+
         fal_status: falRes.status,
+
         fal_status_text: falRes.statusText,
+
         fal_url: falUrl,
+
         model: model,
+
         request_id: requestId,
+
         fal_response: falBody,
       });
     }
+
+    // --------------------------------------------------
+    // EMPTY RESPONSE
+    // --------------------------------------------------
 
     if (!falBody) {
       return res.status(200).json({
@@ -69,7 +85,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Still processing
+    // --------------------------------------------------
+    // IN PROGRESS
+    // --------------------------------------------------
+
     if (
       falBody.status === 'IN_PROGRESS' ||
       falBody.status === 'IN_QUEUE' ||
@@ -80,7 +99,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Failed
+    // --------------------------------------------------
+    // FAILED
+    // --------------------------------------------------
+
     if (
       falBody.status === 'FAILED' ||
       falBody.status === 'ERROR'
@@ -90,11 +112,17 @@ export default async function handler(req, res) {
           falBody.error ||
           falBody.detail ||
           'fal.ai reported that generation failed.',
+
+        fal_status: falRes.status,
+
         raw: falBody,
       });
     }
 
-    // Completed
+    // --------------------------------------------------
+    // COMPLETED
+    // --------------------------------------------------
+
     if (falBody.status === 'COMPLETED') {
       const resultUrl =
         `https://queue.fal.run/${model}/requests/${requestId}`;
@@ -109,23 +137,34 @@ export default async function handler(req, res) {
 
       const resultText = await resultRes.text();
 
-      let resultBody = null;
+      let resultBody;
 
       try {
-        resultBody = resultText ? JSON.parse(resultText) : null;
+        resultBody = resultText
+          ? JSON.parse(resultText)
+          : null;
       } catch {
         resultBody = resultText;
       }
 
+      // Result request failed
       if (!resultRes.ok) {
         return res.status(502).json({
           error: 'fal.ai result request failed.',
+
           fal_status: resultRes.status,
+
           fal_status_text: resultRes.statusText,
+
           fal_url: resultUrl,
+
           fal_response: resultBody,
         });
       }
+
+      // --------------------------------------------------
+      // FIND VIDEO URL
+      // --------------------------------------------------
 
       const videoUrl =
         resultBody?.video?.url ||
@@ -135,16 +174,22 @@ export default async function handler(req, res) {
 
       if (!videoUrl) {
         return res.status(502).json({
-          error: 'Generation completed but video URL was not found.',
+          error:
+            'Generation completed but video URL was not found.',
+
           raw: resultBody,
         });
       }
 
       return res.status(200).json({
         status: 'COMPLETED',
-        videoUrl,
+        videoUrl: videoUrl,
       });
     }
+
+    // --------------------------------------------------
+    // UNKNOWN STATUS
+    // --------------------------------------------------
 
     return res.status(200).json({
       status: falBody.status || 'IN_PROGRESS',
@@ -159,8 +204,9 @@ export default async function handler(req, res) {
   }
 }
 
-      
+        
 
+        
 
 
       
