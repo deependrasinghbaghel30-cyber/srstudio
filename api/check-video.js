@@ -13,25 +13,36 @@ export default async function handler(req) {
   if (!requestId || !model) return json({ error: 'Missing request_id or model.' }, 400);
 
   try {
-    // First, check status
     const statusRes = await fetch(
       `https://queue.fal.run/${model}/requests/${requestId}/status`,
       { headers: { 'Authorization': `Key ${key}` } }
     );
     const status = await statusRes.json();
 
+    if (!statusRes.ok) {
+      return json({ error: status?.detail || status?.message || `fal.ai status check failed (${statusRes.status})`, raw: status }, statusRes.status);
+    }
+
     if (status.status === 'COMPLETED') {
-      // Fetch the actual result (contains the video URL)
       const resultRes = await fetch(
         `https://queue.fal.run/${model}/requests/${requestId}`,
         { headers: { 'Authorization': `Key ${key}` } }
       );
       const result = await resultRes.json();
+      if (!resultRes.ok) {
+        return json({ error: result?.detail || result?.message || `fal.ai result fetch failed (${resultRes.status})`, raw: result }, resultRes.status);
+      }
       const videoUrl = result?.video?.url || result?.data?.video?.url || null;
+      if (!videoUrl) {
+        return json({ error: 'Video completed but no URL was returned by fal.ai.', raw: result }, 502);
+      }
       return json({ status: 'COMPLETED', videoUrl });
     }
 
-    // IN_QUEUE or IN_PROGRESS
+    if (status.status === 'FAILED' || status.status === 'ERROR') {
+      return json({ error: status?.error || status?.detail || 'fal.ai reported the generation failed.', raw: status }, 502);
+    }
+
     return json({ status: status.status || 'IN_PROGRESS' });
   } catch (e) {
     return json({ error: 'Status check failed: ' + e.message }, 502);
