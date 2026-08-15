@@ -12,20 +12,33 @@ export default async function handler(request) {
     );
   }
 
-  const url = new URL(request.url);
-  const requestId = url.searchParams.get('request_id');
-  const model = url.searchParams.get('model');
-
-  if (!requestId || !model) {
-    return json(
-      { error: 'Missing request_id or model.' },
-      400
-    );
-  }
-
   try {
-    // Check fal.ai queue status.
-    // Timeout prevents the Vercel function from hanging.
+    // Vercel can provide request.url as a relative path.
+    // Build a valid absolute URL when necessary.
+    const host =
+      request.headers?.host ||
+      request.headers?.get?.('host') ||
+      'localhost';
+
+    const baseUrl = `https://${host}`;
+
+    const url = new URL(request.url, baseUrl);
+
+    const requestId = url.searchParams.get('request_id');
+    const model = url.searchParams.get('model');
+
+    if (!requestId || !model) {
+      return json(
+        {
+          error: 'Missing request_id or model.',
+          received_request_id: requestId,
+          received_model: model,
+        },
+        400
+      );
+    }
+
+    // Check fal.ai queue status
     const statusRes = await fetchWithTimeout(
       `https://queue.fal.run/${model}/requests/${requestId}/status`,
       {
@@ -67,7 +80,7 @@ export default async function handler(request) {
       });
     }
 
-    // Still processing.
+    // Still processing
     if (
       status.status === 'IN_PROGRESS' ||
       status.status === 'IN_QUEUE' ||
@@ -78,7 +91,7 @@ export default async function handler(request) {
       });
     }
 
-    // Failed.
+    // Failed
     if (
       status.status === 'FAILED' ||
       status.status === 'ERROR'
@@ -95,7 +108,7 @@ export default async function handler(request) {
       );
     }
 
-    // Completed — fetch the actual result.
+    // Completed — fetch actual result
     if (status.status === 'COMPLETED') {
       const resultRes = await fetchWithTimeout(
         `https://queue.fal.run/${model}/requests/${requestId}`,
@@ -155,7 +168,6 @@ export default async function handler(request) {
       });
     }
 
-    // Unknown status — keep checking.
     return json({
       status: status.status || 'IN_PROGRESS',
     });
@@ -202,7 +214,9 @@ function json(data, status = 200) {
   });
 }
 
+            
 
-        
 
-        
+      
+
+  
