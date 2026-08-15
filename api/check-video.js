@@ -1,32 +1,104 @@
-
 // api/check-video.js
 
-export default {
-  async fetch(request) {
-    const key = process.env.FAL_KEY;
+export const runtime = 'nodejs';
 
-    if (!key) {
-      return json(
-        { error: 'Server not configured: FAL_KEY missing.' },
-        500
-      );
-    }
+export default async function handler(request) {
+  const key = process.env.FAL_KEY;
 
-    const url = new URL(request.url);
-    const requestId = url.searchParams.get('request_id');
-    const model = url.searchParams.get('model');
+  if (!key) {
+    return json(
+      { error: 'Server not configured: FAL_KEY missing.' },
+      500
+    );
+  }
 
-    if (!requestId || !model) {
-      return json(
-        { error: 'Missing request_id or model.' },
-        400
-      );
-    }
+  const url = new URL(request.url);
+  const requestId = url.searchParams.get('request_id');
+  const model = url.searchParams.get('model');
+
+  if (!requestId || !model) {
+    return json(
+      { error: 'Missing request_id or model.' },
+      400
+    );
+  }
+
+  try {
+    // Check fal.ai queue status.
+    // Timeout prevents the Vercel function from hanging.
+    const statusRes = await fetchWithTimeout(
+      `https://queue.fal.run/${model}/requests/${requestId}/status`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Key ${key}`,
+        },
+      },
+      8000
+    );
+
+    const statusText = await statusRes.text();
+
+    let status = null;
 
     try {
-      // Check fal.ai queue status with a timeout.
-      const statusRes = await fetchWithTimeout(
-        `https://queue.fal.run/${model}/requests/${requestId}/status`,
+      status = statusText ? JSON.parse(statusText) : null;
+    } catch {
+      status = null;
+    }
+
+    if (!statusRes.ok) {
+      return json(
+        {
+          error:
+            status?.detail ||
+            status?.message ||
+            `fal.ai status check failed (${statusRes.status})`,
+          fal_status: statusRes.status,
+          raw: status,
+        },
+        statusRes.status
+      );
+    }
+
+    if (!status) {
+      return json({
+        status: 'IN_PROGRESS',
+      });
+    }
+
+    // Still processing.
+    if (
+      status.status === 'IN_PROGRESS' ||
+      status.status === 'IN_QUEUE' ||
+      status.status === 'QUEUED'
+    ) {
+      return json({
+        status: status.status,
+      });
+    }
+
+    // Failed.
+    if (
+      status.status === 'FAILED' ||
+      status.status === 'ERROR'
+    ) {
+      return json(
+        {
+          error:
+            status.error ||
+            status.detail ||
+            'fal.ai reported the generation failed.',
+          raw: status,
+        },
+        502
+      );
+    }
+
+    // Completed — fetch the actual result.
+    if (status.status === 'COMPLETED') {
+      const resultRes = await fetchWithTimeout(
+        `https://queue.fal.run/${model}/requests/${requestId}`,
         {
           method: 'GET',
           headers: {
@@ -36,139 +108,74 @@ export default {
         8000
       );
 
-      const statusText = await statusRes.text();
+      const resultText = await resultRes.text();
 
-      let status = null;
+      let result = null;
 
       try {
-        status = statusText ? JSON.parse(statusText) : null;
+        result = resultText ? JSON.parse(resultText) : null;
       } catch {
-        status = null;
+        result = null;
       }
 
-      if (!statusRes.ok) {
+      if (!resultRes.ok) {
         return json(
           {
             error:
-              status?.detail ||
-              status?.message ||
-              `fal.ai status check failed (${statusRes.status})`,
-            fal_status: statusRes.status,
-            raw: status,
+              result?.detail ||
+              result?.message ||
+              `fal.ai result fetch failed (${resultRes.status})`,
+            fal_status: resultRes.status,
+            raw: result,
           },
-          statusRes.status
+          resultRes.status
         );
       }
 
-      if (!status) {
-        return json({ status: 'IN_PROGRESS' });
-      }
+      const videoUrl =
+        result?.video?.url ||
+        result?.data?.video?.url ||
+        result?.output?.video?.url ||
+        null;
 
-      // Still processing.
-      if (
-        status.status === 'IN_PROGRESS' ||
-        status.status === 'IN_QUEUE' ||
-        status.status === 'QUEUED'
-      ) {
-        return json({
-          status: status.status,
-        });
-      }
-
-      // Failed.
-      if (
-        status.status === 'FAILED' ||
-        status.status === 'ERROR'
-      ) {
+      if (!videoUrl) {
         return json(
           {
             error:
-              status.error ||
-              status.detail ||
-              'fal.ai reported the generation failed.',
-            raw: status,
+              'Video completed but no video URL was returned by fal.ai.',
+            raw: result,
           },
           502
         );
       }
 
-      // Completed — fetch the actual result.
-      if (status.status === 'COMPLETED') {
-        const resultRes = await fetchWithTimeout(
-          `https://queue.fal.run/${model}/requests/${requestId}`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Key ${key}`,
-            },
-          },
-          8000
-        );
-
-        const resultText = await resultRes.text();
-
-        let result = null;
-
-        try {
-          result = resultText ? JSON.parse(resultText) : null;
-        } catch {
-          result = null;
-        }
-
-        if (!resultRes.ok) {
-          return json(
-            {
-              error:
-                result?.detail ||
-                result?.message ||
-                `fal.ai result fetch failed (${resultRes.status})`,
-              fal_status: resultRes.status,
-              raw: result,
-            },
-            resultRes.status
-          );
-        }
-
-        const videoUrl =
-          result?.video?.url ||
-          result?.data?.video?.url ||
-          result?.output?.video?.url ||
-          null;
-
-        if (!videoUrl) {
-          return json(
-            {
-              error:
-                'Video completed but no video URL was returned by fal.ai.',
-              raw: result,
-            },
-            502
-          );
-        }
-
-        return json({
-          status: 'COMPLETED',
-          videoUrl,
-        });
-      }
-
       return json({
-        status: status.status || 'IN_PROGRESS',
+        status: 'COMPLETED',
+        videoUrl,
       });
-    } catch (error) {
-      return json(
-        {
-          error:
-            'Status check failed: ' +
-            (error?.message || String(error)),
-        },
-        502
-      );
     }
-  },
-};
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+    // Unknown status — keep checking.
+    return json({
+      status: status.status || 'IN_PROGRESS',
+    });
+  } catch (error) {
+    return json(
+      {
+        error:
+          'Status check failed: ' +
+          (error?.message || String(error)),
+      },
+      502
+    );
+  }
+}
+
+async function fetchWithTimeout(
+  url,
+  options = {},
+  timeoutMs = 8000
+) {
   const controller = new AbortController();
 
   const timeout = setTimeout(() => {
@@ -194,8 +201,8 @@ function json(data, status = 200) {
     },
   });
 }
-      
 
-            
 
-          
+        
+
+        
