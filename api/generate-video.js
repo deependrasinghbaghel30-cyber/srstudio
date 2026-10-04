@@ -3,6 +3,8 @@
 // that fal.ai itself provides (instead of guessing them) — this is the fix for
 // the 405 errors, which happened because we were reconstructing URLs ourselves.
 
+import { checkPass } from './_guard.js';
+
 export const config = { runtime: 'edge' };
 
 const MODELS = {
@@ -17,6 +19,7 @@ const MODELS = {
 };
 
 export default async function handler(req) {
+  const denied = checkPass(req); if (denied) return denied;
   if (req.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }

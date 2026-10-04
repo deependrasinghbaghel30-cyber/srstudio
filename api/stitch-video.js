@@ -2,11 +2,14 @@
 // Joins multiple clips into one video (server-side, full quality → mp4).
 // Uses fal.ai's ffmpeg compose endpoint. Returns fal.ai's own status/response URLs.
 
+import { checkPass } from './_guard.js';
+
 export const config = { runtime: 'edge' };
 
 const COMPOSE_MODEL = 'fal-ai/ffmpeg-api/compose';
 
 export default async function handler(req) {
+  const denied = checkPass(req); if (denied) return denied;
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   const key = process.env.FAL_KEY;

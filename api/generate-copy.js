@@ -1,349 +1,102 @@
-// api/generate-video.js
+// api/generate-copy.js
+// Marketing copy (headline, WhatsApp message, NRI pitch, caption) from the
+// property details. (This file previously contained a copy of the video
+// endpoint by mistake, so "Write copy" could never work.)
 //
-// Starts video generation jobs on fal.ai.
-// Returns request_id + status_url + response_url for every job.
-//
-// FAL_KEY stays server-side in Vercel environment variables.
+// Keys (Vercel → Settings → Environment Variables), first one found is used:
+//   COPY_KEY            AICredits (or any OpenAI-compatible) key — paid by UPI
+//     COPY_BASE_URL     default https://api.aicredits.in/v1
+//     COPY_MODEL        default claude-3-5-sonnet
+//   ANTHROPIC_API_KEY   direct Claude API (optional alternative)
+//     ANTHROPIC_MODEL   default claude-haiku-4-5-20251001
 
-export const config = {
-  runtime: 'nodejs',
-};
+import { checkPass } from './_guard.js';
 
-// --------------------------------------------------
-// FAL.AI MODELS
-// --------------------------------------------------
+export const config = { runtime: 'edge' };
 
-const MODELS = {
-  kling: {
-    image: 'fal-ai/kling-video/v2.6/pro/image-to-video',
-    text: 'fal-ai/kling-video/v2.6/pro/text-to-video',
-  },
-
-  veo: {
-    image: 'fal-ai/veo3/image-to-video',
-    text: 'fal-ai/veo3',
-  },
-};
-
-// --------------------------------------------------
-// MAIN HANDLER
-// --------------------------------------------------
-
-export default async function handler(req, res) {
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      error: 'Method not allowed.',
-    });
-  }
-
-  const key = process.env.FAL_KEY;
-
-  if (!key) {
-    return res.status(500).json({
-      error: 'Server not configured: FAL_KEY missing in Vercel.',
-    });
-  }
-
-  // ------------------------------------------------
-  // READ REQUEST BODY
-  // ------------------------------------------------
+export default async function handler(req) {
+  const denied = checkPass(req); if (denied) return denied;
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   let body;
+  try { body = await req.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const ptype = body?.ptype === 'residential' ? 'residential' : 'commercial';
+  const details = (Array.isArray(body?.details) ? body.details : [])
+    .map(d => ({ label: String(d?.label || '').trim().slice(0, 80), value: String(d?.value || '').trim().slice(0, 300) }))
+    .filter(d => d.label || d.value)
+    .slice(0, 30);
+  const instructions = String(body?.instructions || '').trim().slice(0, 1500);
+  if (!details.length) return json({ error: 'Add at least one detail first (price, location, etc.).' }, 400);
+
+  const facts = details.map(d => `- ${d.label ? d.label + ': ' : ''}${d.value}`).join('\n')
+  const system = `You write marketing copy for an Indian real-estate broker who sells and leases ${ptype === 'commercial' ? 'commercial property (offices, retail, showrooms) to investors, including NRI and HNI buyers' : 'residential homes (apartments, villas) to families and NRI buyers'}.
+Rules:
+- Use ONLY the facts given. Never invent prices, rental yields, amenities, distances, approvals or RERA numbers.
+- If a RERA number is given, include it exactly as written in the WhatsApp message.
+- Clear, premium, confident tone. No exaggerated claims ("best", "guaranteed returns").
+- Return ONLY a JSON object with these string keys, nothing else:
+  "headline"  (max 10 words),
+  "whatsapp"  (60-120 words, short lines, 2-4 emojis, ends with a call to action),
+  "nri_pitch" (70-120 words, for an NRI investor abroad: why this property, how a remote purchase/visit can be handled),
+  "caption"   (Instagram/Facebook caption, 30-60 words, 5-8 relevant hashtags at the end).`
+  const user = `Property type: ${ptype}\nFacts:\n${facts}${instructions ? `\n\nExtra instructions from the broker (follow them unless they ask you to invent facts):\n${instructions}` : ''}`
 
   try {
-    body = typeof req.body === 'string'
-      ? JSON.parse(req.body)
-      : req.body;
-  } catch (error) {
-    return res.status(400).json({
-      error: 'Invalid JSON request body.',
-    });
-  }
-
-  const {
-    mode,
-    engine,
-    prompt,
-    imageDataUrl,
-    imageDataUrls,
-    aspect,
-  } = body || {};
-
-  // ------------------------------------------------
-  // MAP UI ENGINE → FAL ENGINE
-  // ------------------------------------------------
-
-  const eng =
-    engine === 'cinematic-pro'
-      ? 'veo'
-      : 'kling';
-
-  const model =
-    MODELS[eng] &&
-    MODELS[eng][mode];
-
-  if (!model) {
-    return res.status(400).json({
-      error: 'Unknown mode or engine.',
-      mode,
-      engine,
-    });
-  }
-
-  // ------------------------------------------------
-  // ASPECT RATIO
-  // ------------------------------------------------
-
-  const ratio =
-    ['9:16', '1:1', '16:9'].includes(aspect)
-      ? aspect
-      : '9:16';
-
-  // ------------------------------------------------
-  // COLLECT IMAGES
-  // ------------------------------------------------
-
-  const imgs =
-    Array.isArray(imageDataUrls) &&
-    imageDataUrls.length
-      ? imageDataUrls
-      : imageDataUrl
-        ? [imageDataUrl]
-        : [];
-
-  // ------------------------------------------------
-  // BUILD JOB INPUTS
-  // ------------------------------------------------
-
-  const jobs = [];
-
-  if (mode === 'image') {
-
-    if (!imgs.length) {
-      return res.status(400).json({
-        error: 'No image provided.',
-      });
+    let text = ''
+    if (process.env.COPY_KEY) {
+      const base = (process.env.COPY_BASE_URL || 'https://api.aicredits.in/v1').replace(/\/+$/, '')
+      const res = await fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${process.env.COPY_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: process.env.COPY_MODEL || 'claude-3-5-sonnet',
+          max_tokens: 1200, temperature: 0.7,
+          messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) return json({ error: `Copy service error (${res.status}): ${errText(data)}` }, 502)
+      text = data?.choices?.[0]?.message?.content || ''
+    } else if (process.env.ANTHROPIC_API_KEY) {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
+          max_tokens: 1200, system, messages: [{ role: 'user', content: user }],
+        }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) return json({ error: `Claude API error (${res.status}): ${errText(data)}` }, 502)
+      text = (data?.content || []).map(c => c?.text || '').join('')
+    } else {
+      return json({ error: 'Server not configured: add COPY_KEY (AICredits) in Vercel → Settings → Environment Variables, then redeploy.' }, 500)
     }
 
-    for (const img of imgs) {
-
-      const input = {
-        prompt:
-          prompt ||
-          'Cinematic real estate shot, slow smooth camera motion, warm natural light, premium look',
-
-        duration: '5',
-
-        aspect_ratio: ratio,
-
-        generate_audio: true,
-      };
-
-      // Kling expects start_image_url
-      if (eng === 'kling') {
-        input.start_image_url = img;
-      }
-
-      // Veo expects image_url
-      else {
-        input.image_url = img;
-      }
-
-      jobs.push(input);
-    }
-
-  } else {
-
-    // TEXT → VIDEO
-
-    jobs.push({
-      prompt: prompt || '',
-
-      duration: '5',
-
-      aspect_ratio: ratio,
-
-      generate_audio: true,
-    });
-  }
-
-  // ------------------------------------------------
-  // SUBMIT ALL JOBS
-  // ------------------------------------------------
-
-  try {
-
-    const started = [];
-
-    for (const input of jobs) {
-
-      const falRes = await fetch(
-        `https://queue.fal.run/${model}`,
-        {
-          method: 'POST',
-
-          headers: {
-            Authorization: `Key ${key}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-
-          body: JSON.stringify(input),
-        }
-      );
-
-      // Read response safely
-      const text = await falRes.text();
-
-      let data;
-
-      try {
-        data = text
-          ? JSON.parse(text)
-          : null;
-      } catch {
-        data = text;
-      }
-
-      // ------------------------------------------------
-      // FAL REQUEST FAILED
-      // ------------------------------------------------
-
-      if (!falRes.ok) {
-
-        return res.status(502).json({
-          error:
-            data?.detail ||
-            data?.error ||
-            'fal.ai request failed.',
-
-          fal_status: falRes.status,
-
-          fal_status_text: falRes.statusText,
-
-          model,
-
-          fal_response: data,
-        });
-      }
-
-      // ------------------------------------------------
-      // VALIDATE FAL RESPONSE
-      // ------------------------------------------------
-
-      if (!data || !data.request_id) {
-
-        return res.status(502).json({
-          error:
-            'fal.ai accepted the request but did not return request_id.',
-
-          model,
-
-          fal_response: data,
-        });
-      }
-
-      // ------------------------------------------------
-      // IMPORTANT
-      //
-      // fal.ai REST queue response provides:
-      //
-      // request_id
-      // status_url
-      // response_url
-      //
-      // We pass ALL of them to the browser.
-      // ------------------------------------------------
-
-      const requestId =
-        data.request_id;
-
-      const statusUrl =
-        data.status_url ||
-        `https://queue.fal.run/${model}/requests/${requestId}/status`;
-
-      const responseUrl =
-        data.response_url ||
-        `https://queue.fal.run/${model}/requests/${requestId}`;
-
-      started.push({
-
-        request_id:
-          requestId,
-
-        status_url:
-          statusUrl,
-
-        response_url:
-          responseUrl,
-
-        status:
-          data.status ||
-          'IN_QUEUE',
-
-        queue_position:
-          data.queue_position ?? null,
-      });
-    }
-
-    // ------------------------------------------------
-    // FINAL RESPONSE TO INDEX.HTML
-    // ------------------------------------------------
-
-    return res.status(200).json({
-
-      jobs: started,
-
-      // Keep these fields too for compatibility
-      // with the current index.html.
-
-      request_ids:
-        started.map(
-          job => job.request_id
-        ),
-
-      status_urls:
-        started.map(
-          job => job.status_url
-        ),
-
-      response_urls:
-        started.map(
-          job => job.response_url
-        ),
-
-      model,
-
-      engine: eng,
-
-      mode,
-
-      count: started.length,
-    });
-
-  } catch (error) {
-
-    console.error(
-      'generate-video error:',
-      error
-    );
-
-    return res.status(502).json({
-
-      error:
-        'Could not reach fal.ai.',
-
-      message:
-        error?.message ||
-        String(error),
-
-      model,
-
-      engine: eng,
-
-      mode,
-    });
+    const copy = parseCopy(text)
+    if (!copy) return json({ error: 'The AI reply could not be read. Please try again.' }, 502)
+    return json({ copy })
+  } catch (e) {
+    return json({ error: 'Could not reach the copy service: ' + e.message }, 502)
   }
 }
 
+function parseCopy(text) {
+  const t = String(text || '')
+  const s = t.indexOf('{'), e = t.lastIndexOf('}')
+  if (s < 0 || e <= s) return null
+  try {
+    const o = JSON.parse(t.slice(s, e + 1))
+    const pick = k => (typeof o[k] === 'string' ? o[k].trim() : '')
+    const copy = { headline: pick('headline'), whatsapp: pick('whatsapp'), nri_pitch: pick('nri_pitch'), caption: pick('caption') }
+    return Object.values(copy).some(Boolean) ? copy : null
+  } catch { return null }
+}
+
+async function safeJson(res) { const t = await res.text(); try { return JSON.parse(t) } catch { return { message: t.slice(0, 200) } } }
+function errText(d) { const m = d?.error?.message || d?.error || d?.message || d?.detail || 'request failed'; return typeof m === 'string' ? m : JSON.stringify(m) }
+
+function json(obj, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
+}

@@ -2,9 +2,12 @@
 // Uploads a base64 data URL (overlay PNG, or audio) to fal.ai storage,
 // returns a public URL that the compose endpoint can use.
 
+import { checkPass } from './_guard.js';
+
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
+  const denied = checkPass(req); if (denied) return denied;
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   const key = process.env.FAL_KEY;
@@ -27,7 +30,7 @@ export default async function handler(req) {
     const initRes = await fetch('https://rest.alpha.fal.ai/storage/upload/initiate', {
       method: 'POST',
       headers: { 'Authorization': `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content_type: type, file_name: 'overlay' }),
+      body: JSON.stringify({ content_type: type, file_name: type.startsWith('audio') ? 'audio' : 'overlay' }),
     });
     const init = await initRes.json();
     if (!initRes.ok || !init.upload_url) {

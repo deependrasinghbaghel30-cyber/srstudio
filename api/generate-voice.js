@@ -2,12 +2,15 @@
 // Generates a voiceover (mp3/audio URL) from text using fal.ai's TTS.
 // Same FAL_KEY as video — one key for everything.
 
+import { checkPass } from './_guard.js';
+
 export const config = { runtime: 'edge' };
 
 // fal.ai TTS model. Supports multilingual output (Hindi / English / Marathi etc.)
 const TTS_MODEL = 'fal-ai/elevenlabs/tts/multilingual-v2';
 
 export default async function handler(req) {
+  const denied = checkPass(req); if (denied) return denied;
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   const key = process.env.FAL_KEY;

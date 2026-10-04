@@ -304,6 +304,27 @@
 </div>
 
 <script>
+  // ---------- optional passcode (only if APP_PASSCODE is set in Vercel) ----------
+  (function(){
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async function(input, init){
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      if(!url.startsWith('/api/')) return nativeFetch(input, init);
+      const withPass = () => {
+        const headers = new Headers((init && init.headers) || {});
+        const p = localStorage.getItem('srstudio_pass');
+        if(p) headers.set('x-sr-pass', p);
+        return nativeFetch(input, Object.assign({}, init || {}, { headers }));
+      };
+      let res = await withPass();
+      if(res.status === 401){
+        const p = prompt('SR Studio passcode:');
+        if(p){ localStorage.setItem('srstudio_pass', p.trim()); res = await withPass(); }
+      }
+      return res;
+    };
+  })();
+
   // ---------- state ----------
   let mode = 'image';       // image | text
   let ptype = 'commercial'; // commercial | residential
@@ -453,7 +474,7 @@
   function pickPresetMusic(){
     const v = document.getElementById('musicPreset').value;
     if(!v){ musicUrl=null; return; }
-    musicUrl = v; // path to a track in /music
+    musicUrl = new URL(v, location.href).href; // absolute, so the server-side joiner can fetch it
     document.getElementById('musicLabel').textContent = '🎵 …or tap to upload your own (mp3/m4a)';
   }
   function addMusic(e){
@@ -599,6 +620,14 @@
       site: document.getElementById('brSite').value.trim(),
       pos: document.getElementById('brPos').value,
     };
+  }
+
+  // Best video format this phone can record. MP4 first (WhatsApp plays it everywhere,
+  // iPhone can only record MP4), WebM as the fallback.
+  function recorderFormat(){
+    const opts = [['video/mp4;codecs=avc1.42E01E,mp4a.40.2','mp4'],['video/mp4','mp4'],['video/webm;codecs=vp9,opus','webm'],['video/webm;codecs=vp8,opus','webm'],['video/webm','webm']];
+    for(const [m,e] of opts){ try{ if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return {mime:m, ext:e}; }catch(_){} }
+    return null;
   }
 
   function escapeHtml(s){return (s+'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -783,7 +812,8 @@
         if(any) tracks=tracks.concat(dest.stream.getAudioTracks());
       }catch(e){}
       const outStream=new MediaStream(tracks);
-      let mime='video/webm;codecs=vp9,opus'; if(!MediaRecorder.isTypeSupported(mime)) mime='video/webm';
+      const fmt=recorderFormat(); if(!fmt) throw new Error('This browser cannot record video. Please use Chrome.');
+      const mime=fmt.mime;
       const rec=new MediaRecorder(outStream,{mimeType:mime, videoBitsPerSecond:8_000_000});
       const chunks=[]; rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
 
@@ -793,7 +823,7 @@
 
       const done = new Promise(resolve=>{
         rec.onstop=()=>{ audioEls.forEach(a=>a.pause());
-          const blob=new Blob(chunks,{type:mime}); resolve(URL.createObjectURL(blob)); };
+          const blob=new Blob(chunks,{type:mime.split(';')[0]}); resolve(URL.createObjectURL(blob)); };
       });
       rec.start();
 
@@ -828,7 +858,7 @@
 
       const url = await done;
       polling=false; setBusy(false);
-      showFinished(url);
+      showFinished(url, fmt.ext);
     }catch(err){
       polling=false; setBusy(false);
       alert('Could not build reel:\n\n'+err.message);
@@ -862,33 +892,42 @@
     setBusy(true, 'Starting…');
 
     try {
-      // 1) Start the job(s) — one clip per image (or one for text mode)
-      const startRes = await fetch('/api/generate-video', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          mode,
-          engine,
-          prompt: buildPrompt(),
-          aspect: document.getElementById('aspect').value,
-          images: mode==='image' ? images.map(i=>({ dataUrl: i.dataUrl, prompt: (i.prompt||'').trim() })) : null,
-          scenes: mode==='text' ? collectScenes() : null
-        })
-      });
-
-      // The server can reply with plain text (e.g. a size-limit page), not JSON.
-      const startText = await startRes.text();
-      let start;
-      try { start = JSON.parse(startText); }
-      catch {
-        if(startRes.status === 413 || /too large|entity too large/i.test(startText)){
-          throw new Error('Photos are too large to send together. Try fewer photos, or smaller/cropped images.');
+      // 1) Start the job(s). Photos go one request each — sending 6–8 photos in a
+      // single request can exceed the server's upload size limit.
+      const startJobs = async (payload) => {
+        const startRes = await fetch('/api/generate-video', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(Object.assign({ mode, engine, prompt: buildPrompt(), aspect: document.getElementById('aspect').value }, payload))
+        });
+        // The server can reply with plain text (e.g. a size-limit page), not JSON.
+        const startText = await startRes.text();
+        let start;
+        try { start = JSON.parse(startText); }
+        catch {
+          if(startRes.status === 413 || /too large|entity too large/i.test(startText)){
+            throw new Error('This photo is too large to send. Try a smaller or cropped image.');
+          }
+          throw new Error(`Server error (${startRes.status}): ${startText.slice(0,120)}`);
         }
-        throw new Error(`Server error (${startRes.status}): ${startText.slice(0,120)}`);
+        if(!startRes.ok || start.error){ throw new Error(start.error || 'Could not start video.'); }
+        return start.jobs || [];
+      };
+      let jobs = [];
+      if(mode === 'image'){
+        for(let k=0;k<images.length;k++){
+          setBusy(true, `Starting clip ${k+1} of ${images.length}…`);
+          try {
+            jobs = jobs.concat(await startJobs({ images: [{ dataUrl: images[k].dataUrl, prompt: (images[k].prompt||'').trim() }] }));
+          } catch(e){
+            if(!jobs.length) throw e;
+            alert(`Photo ${k+1} could not be started:\n\n${e.message}\n\nThe ${jobs.length} clip${jobs.length>1?'s':''} already started will continue.`);
+            break;
+          }
+        }
+      } else {
+        jobs = await startJobs({ scenes: collectScenes() });
       }
-      if(!startRes.ok || start.error){ throw new Error(start.error || 'Could not start video.'); }
-
-      const jobs = start.jobs || [];
       if(!jobs.length){ throw new Error('No video jobs started.'); }
 
       // 2) Wait for all clips. Each finished clip is saved immediately, so if a
@@ -1018,7 +1057,7 @@
   function pollForVideo(statusUrl, responseUrl){
     return new Promise((resolve, reject)=>{
       let tries = 0;
-      const maxTries = 90; // ~7.5 min at 5s each
+      const maxTries = 180; // ~15 min at 5s each (AI queues can be slow at peak times)
       const iv = setInterval(async ()=>{
         tries++;
         if(tries > maxTries){ clearInterval(iv); reject(new Error('Timed out. Try again.')); return; }
@@ -1119,13 +1158,13 @@
     });
   }
 
-  function showFinished(videoUrl){
+  function showFinished(videoUrl, ext){
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:16px;';
     overlay.innerHTML = `
       <video src="${videoUrl}" controls autoplay playsinline crossorigin="anonymous" style="max-width:100%;max-height:64vh;border-radius:12px;"></video>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
-        <a href="${videoUrl}" download="sr-studio-reel.mp4" style="padding:13px 22px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-soft));color:#1A1206;font-weight:700;text-decoration:none;">Download</a>
+        <a href="${videoUrl}" download="sr-studio-reel.${ext || 'mp4'}" style="padding:13px 22px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-soft));color:#1A1206;font-weight:700;text-decoration:none;">Download</a>
         <button onclick="this.closest('div').parentElement.remove()" style="padding:13px 20px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);font-weight:600;">Close</button>
       </div>
       <div style="color:var(--muted);font-size:13px;">Branding, details & audio already added ✓</div>
@@ -1200,19 +1239,27 @@
       }catch(e){ /* audio optional */ }
       const outStream = new MediaStream(tracks);
 
-      let mime = 'video/webm;codecs=vp9,opus';
-      if(!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
-      const rec = new MediaRecorder(outStream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+      const fmt = recorderFormat();
+      let rec;
+      try {
+        if(!fmt) throw new Error('This browser cannot record video. Please use Chrome.');
+        rec = new MediaRecorder(outStream, { mimeType: fmt.mime, videoBitsPerSecond: 8_000_000 });
+      } catch(err){
+        status.textContent = 'Could not process: ' + err.message;
+        btn.disabled = false; btn.textContent = 'Finish & download';
+        return;
+      }
+      const mime = fmt.mime;
       const chunks = [];
       rec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
       rec.onstop = ()=>{
         audioEls.forEach(a=>a.pause());
-        const blob = new Blob(chunks, { type: mime });
+        const blob = new Blob(chunks, { type: mime.split(';')[0] });
         const url = URL.createObjectURL(blob);
         status.textContent = 'Done ✓  Ready to share on WhatsApp.';
         btn.style.display = 'none';
         const a = document.createElement('a');
-        a.href = url; a.download = 'sr-studio-reel.webm';
+        a.href = url; a.download = 'sr-studio-reel.' + fmt.ext;
         a.textContent = 'Download video';
         a.style.cssText = 'padding:13px 22px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-soft));color:#1A1206;font-weight:700;text-decoration:none;';
         overlay.querySelector('#resultBtns').prepend(a);
@@ -1344,6 +1391,16 @@
   loadFields();
   loadBranding();
   loadLibrary(); // restore clips saved from earlier sessions
+  // Ready-made music: only list tracks that actually exist in the /music folder
+  // (upload mp3s there on GitHub and they appear here automatically).
+  (async function(){
+    const sel = document.getElementById('musicPreset');
+    for(const o of [...sel.options]){
+      if(!o.value) continue;
+      try { const r = await fetch(o.value, { method:'HEAD' }); if(!r.ok) o.remove(); } catch(e){ o.remove(); }
+    }
+    if(sel.options.length <= 1) sel.style.display = 'none';
+  })();
   addScene(); // start text mode with one scene box
 
   // register service worker (PWA)

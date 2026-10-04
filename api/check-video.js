@@ -2,9 +2,12 @@
 // Checks whether a fal.ai video job is done, using the EXACT status_url and
 // response_url that fal.ai provided when the job was submitted (not reconstructed).
 
+import { checkPass, isFalQueueUrl } from './_guard.js';
+
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
+  const denied = checkPass(req); if (denied) return denied;
   const key = process.env.FAL_KEY;
   if (!key) return json({ error: 'Server not configured: FAL_KEY missing.' }, 500);
 
@@ -12,6 +15,7 @@ export default async function handler(req) {
   const statusUrl = searchParams.get('status_url');
   const responseUrl = searchParams.get('response_url');
   if (!statusUrl || !responseUrl) return json({ error: 'Missing status_url or response_url.' }, 400);
+  if (!isFalQueueUrl(statusUrl) || !isFalQueueUrl(responseUrl)) return json({ error: 'Invalid job URL.' }, 400);
 
   try {
     const statusRes = await fetch(statusUrl, { headers: { 'Authorization': `Key ${key}` } });

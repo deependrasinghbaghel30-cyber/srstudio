@@ -38,6 +38,11 @@ Property reels & video. Text→Video and Image→Video via fal.ai (Kling).
 - `FAL_KEY` — your fal.ai key (video)
 - `COPY_KEY` — your AICredits key (copy)
 - optional `COPY_BASE_URL` (default `https://api.aicredits.in/v1`), `COPY_MODEL` (default `claude-3-5-sonnet`)
+- or `ANTHROPIC_API_KEY` (direct Claude API) instead of `COPY_KEY`
+- optional `APP_PASSCODE` — recommended. When set, the app asks for this code once per phone; without it nobody else can use your fal.ai credits through the site.
+
+## Ready-made music
+Put mp3 files in a `music/` folder named `track1.mp3` … `track5.mp3` (royalty-free only). Tracks that are missing are hidden in the app automatically.
 
 ## What's built (all done)
 - Foundation (PWA, custom fields, commercial/residential)
