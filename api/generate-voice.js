@@ -2,7 +2,7 @@
 // Generates a voiceover (mp3/audio URL) from text using fal.ai's TTS.
 // Same FAL_KEY as video — one key for everything.
 
-import { checkPass } from './_guard.js';
+import { checkPass, LIMITS } from './_guard.js';
 
 export const config = { runtime: 'edge' };
 
@@ -22,8 +22,9 @@ export default async function handler(req) {
   const { text, voice } = body || {};
   if (!text || !text.trim()) return json({ error: 'No text for voiceover.' }, 400);
 
+  if (typeof text !== 'string' || text.trim().length > LIMITS.voiceChars) return json({ error: `Keep the voiceover under ${LIMITS.voiceChars} characters.` }, 400);
   const input = { text: text.trim() };
-  if (voice) input.voice = voice; // optional preset voice name
+  if (typeof voice === 'string' && /^[\w .'-]{1,60}$/.test(voice)) input.voice = voice; // optional preset voice name
 
   try {
     // TTS is usually fast — use the sync run endpoint.

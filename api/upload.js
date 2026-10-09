@@ -2,7 +2,7 @@
 // Uploads a base64 data URL (overlay PNG, or audio) to fal.ai storage,
 // returns a public URL that the compose endpoint can use.
 
-import { checkPass } from './_guard.js';
+import { checkPass, LIMITS } from './_guard.js';
 
 export const config = { runtime: 'edge' };
 
@@ -21,10 +21,21 @@ export default async function handler(req) {
 
   try {
     // Convert data URL -> binary
-    const m = dataUrl.match(/^data:([^;]+);base64,(.*)$/);
-    const type = contentType || (m ? m[1] : 'application/octet-stream');
-    const b64 = m ? m[2] : dataUrl;
-    const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    // Only the app's own overlay images are uploaded — never arbitrary files
+    // (otherwise the endpoint becomes free public file hosting on your fal account).
+    const m = typeof dataUrl === 'string' && dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/);
+    if (!m) return json({ error: 'Only PNG, JPEG or WebP images can be uploaded.' }, 400);
+    const type = m[1];
+    if (contentType && contentType !== type) return json({ error: 'Content type mismatch.' }, 400);
+    const bin = Uint8Array.from(atob(m[2]), c => c.charCodeAt(0));
+    if (bin.length > LIMITS.uploadBytes) return json({ error: 'File too large.' }, 413);
+    const sig = Array.from(bin.slice(0, 12));
+    const isPng = sig[0] === 0x89 && sig[1] === 0x50 && sig[2] === 0x4e && sig[3] === 0x47;
+    const isJpg = sig[0] === 0xff && sig[1] === 0xd8 && sig[2] === 0xff;
+    const isWebp = sig[0] === 0x52 && sig[1] === 0x49 && sig[2] === 0x46 && sig[3] === 0x46 && sig[8] === 0x57 && sig[9] === 0x45;
+    if (!((type === 'image/png' && isPng) || (type === 'image/jpeg' && isJpg) || (type === 'image/webp' && isWebp))) {
+      return json({ error: 'File content does not match its type.' }, 400);
+    }
 
     // fal.ai storage: get an upload URL, then PUT the bytes
     const initRes = await fetch('https://rest.alpha.fal.ai/storage/upload/initiate', {

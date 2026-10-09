@@ -3,7 +3,7 @@
 // that fal.ai itself provides (instead of guessing them) — this is the fix for
 // the 405 errors, which happened because we were reconstructing URLs ourselves.
 
-import { checkPass } from './_guard.js';
+import { checkPass, LIMITS } from './_guard.js';
 
 export const config = { runtime: 'edge' };
 
@@ -59,6 +59,9 @@ export default async function handler(req) {
   const clipDuration = eng === 'veo' ? '8s' : '5';
   // Audio only on Veo — Kling's audio costs more and isn't used.
   const wantAudio = eng === 'veo';
+
+  if (imgEntries.length > LIMITS.imagesPerCall) return json({ error: `Send at most ${LIMITS.imagesPerCall} photos per request.` }, 400);
+  if (Array.isArray(scenes) && scenes.length > LIMITS.scenesPerCall) return json({ error: `At most ${LIMITS.scenesPerCall} scenes per video.` }, 400);
 
   const jobs = [];
   if (mode === 'image') {

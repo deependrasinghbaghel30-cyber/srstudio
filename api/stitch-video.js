@@ -2,7 +2,7 @@
 // Joins multiple clips into one video (server-side, full quality → mp4).
 // Uses fal.ai's ffmpeg compose endpoint. Returns fal.ai's own status/response URLs.
 
-import { checkPass } from './_guard.js';
+import { checkPass, isFalMediaUrl, LIMITS } from './_guard.js';
 
 export const config = { runtime: 'edge' };
 
@@ -22,12 +22,16 @@ export default async function handler(req) {
   if (!Array.isArray(clipUrls) || clipUrls.length === 0) {
     return json({ error: 'No clips to join.' }, 400);
   }
+  if (clipUrls.length > LIMITS.clipsPerJoin) return json({ error: `Join at most ${LIMITS.clipsPerJoin} clips at a time.` }, 400);
+  if (!clipUrls.every(isFalMediaUrl) || (audioUrl && !isFalMediaUrl(audioUrl))) {
+    return json({ error: 'Only clips and audio generated in SR Studio can be joined.' }, 400);
+  }
 
   // fal's compose API needs an explicit duration on every keyframe, and timestamps
   // in milliseconds. Clips are laid end to end so they play one after another.
   // Only ONE video track is allowed — an image/overlay track counts as a second
   // video track and is rejected, so branding is applied in the browser instead.
-  const clipMs = Number(clipDurationMs) > 0 ? Number(clipDurationMs) : 5000;
+  const clipMs = Math.min(10000, Math.max(1000, Number(clipDurationMs) || 5000));
   const totalMs = clipMs * clipUrls.length;
 
   const tracks = [

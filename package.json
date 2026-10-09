@@ -1,5 +1,3 @@
 {
-  "dependencies": {
-    "@fal-ai/client": "latest"
-  }
+  "private": true
 }
