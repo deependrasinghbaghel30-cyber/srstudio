@@ -731,7 +731,7 @@
     if(!card || !list) return;
     card.style.display = library.length ? 'block' : 'none';
     document.getElementById('joinBtn').textContent =
-      library.length > 1 ? `Join ${library.length} clips into one video` : 'Add another clip to join';
+      library.length > 1 ? `Join ${library.length} clips into one video` : 'Generate one more clip above — it will appear here to join';
     document.getElementById('joinBtn').disabled = library.length < 2;
 
     list.innerHTML = library.map((c,idx)=>`
