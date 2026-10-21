@@ -527,13 +527,15 @@ const OCCASIONS = ["Wedding", "Festive", "Party", "Office", "Daily wear"];
 const PHOTOS = {
   hero: ["/ekadashi/img/model-banarasi.jpg", "/ekadashi/img/model-kanjivaram.jpg", "/ekadashi/img/model-paithani.jpg", "/ekadashi/img/model-patola.jpg", "/ekadashi/img/model-bandhani.jpg"],   // big photos at the top (centre first)
   spot: ["/ekadashi/img/model-banarasi.jpg"], edit_bridal: ["/ekadashi/img/model-banarasi.jpg"],
-  occ_Wedding: ["/ekadashi/img/model-banarasi.jpg"], occ_Festive: ["/ekadashi/img/model-paithani.jpg"], occ_Office: [], "occ_Daily wear": [], occ_Party: ["/ekadashi/img/model-bandhani.jpg"],
+  occ_Wedding: ["/ekadashi/img/model-banarasi.jpg"], occ_Festive: ["/ekadashi/img/model-paithani.jpg"], occ_Office: [], "occ_Daily wear": ["/ekadashi/img/model-kasavu.jpg"], occ_Party: ["/ekadashi/img/model-bandhani.jpg"],
   "state_uttar-pradesh": ["/ekadashi/img/model-banarasi.jpg"],
   "state_tamil-nadu": ["/ekadashi/img/model-kanjivaram.jpg"],
   state_maharashtra: ["/ekadashi/img/model-paithani.jpg"],
   edit_festive: ["/ekadashi/img/model-paithani.jpg"],
   state_gujarat: ["/ekadashi/img/model-patola.jpg"],
-  state_rajasthan: ["/ekadashi/img/model-bandhani.jpg"]
+  state_rajasthan: ["/ekadashi/img/model-bandhani.jpg"],
+  state_kerala: ["/ekadashi/img/model-kasavu.jpg"],
+  edit_cotton: ["/ekadashi/img/model-kasavu.jpg"]
 };
 
 /* SAMPLE sarees — for the preview only. They are never copied into the admin
@@ -550,7 +552,7 @@ const P = [
  {id:9, name:"Peach Chanderi Silk Cotton Saree",              state:"madhya-pradesh",weave:"Chanderi",       fabric:"Silk Cotton", color:"#EBC3A5", colorName:"Peach",  occasion:["Office","Party"],    price:4200,  stock:"in",   blouse:true},
  {id:10,name:"Indigo Pochampally Ikat Silk Saree",            state:"telangana",     weave:"Pochampally Ikat",fabric:"Silk",       color:"#1D3557", colorName:"Blue",   occasion:["Festive","Office"],  price:11500, stock:"in",   blouse:true, featured:true},
  {id:11,name:"Magenta Mysore Crepe Silk Saree",               state:"karnataka",     weave:"Mysore Silk",    fabric:"Silk",        color:"#C2185B", colorName:"Pink",   occasion:["Wedding","Party"],   price:13900, stock:"in",   blouse:true},
- {id:12,name:"Kerala Kasavu Cotton Saree, Gold Border",       state:"kerala",        weave:"Kasavu",         fabric:"Cotton",      color:"#F4ECD8", colorName:"Cream",  occasion:["Festive","Daily wear"],price:2800, stock:"in",  blouse:true, featured:true},
+ {id:12,name:"Kerala Kasavu Cotton Saree, Gold Border",       state:"kerala",        weave:"Kasavu",         fabric:"Cotton",      color:"#F4ECD8", colorName:"Cream",  occasion:["Festive","Daily wear"],price:2800, stock:"in",  blouse:true, featured:true, img:["/ekadashi/img/model-kasavu.jpg"]},
  {id:13,name:"Sambalpuri Ikat Cotton Saree, Plum",            state:"odisha",        weave:"Sambalpuri Ikat",fabric:"Cotton",      color:"#3B1F5C", colorName:"Purple", occasion:["Office","Festive"],  price:5200,  stock:"in",   blouse:true},
  {id:14,name:"Golden Muga Silk Mekhela Chador",               state:"assam",         weave:"Mekhela Chador", fabric:"Muga Silk",   color:"#C9A15B", colorName:"Gold",   occasion:["Wedding","Festive"], price:28000, stock:"made", blouse:false},
  {id:15,name:"Bhagalpuri Tussar Saree, Madhubani Hand Painted",state:"bihar",        weave:"Madhubani Painted",fabric:"Tussar",    color:"#CDA978", colorName:"Beige",  occasion:["Office","Festive"],  price:4900,  stock:"in",   blouse:true},
