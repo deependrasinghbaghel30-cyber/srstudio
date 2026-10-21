@@ -557,7 +557,7 @@ const P = [
 </script>
 <script>
 /* demo: Ekadashi AI model */
-(function(m){ PHOTOS.hero = [m]; PHOTOS.spot = [m]; PHOTOS.edit_bridal = [m]; PHOTOS["state_uttar-pradesh"] = [m]; var p = P.find(function(x){ return x.id === 1; }); if (p) p.img = [m]; })("/ekadashi/img/model-banarasi.jpg");
+(function(m){ var m2 = m.replace(".jpg", "-2.jpg"); PHOTOS.hero = [m, m2]; PHOTOS.spot = [m]; PHOTOS.edit_bridal = [m2]; PHOTOS.edit_festive = [m]; PHOTOS.occ_Wedding = [m2]; PHOTOS.occ_Festive = [m]; PHOTOS["state_uttar-pradesh"] = [m]; var p = P.find(function(x){ return x.id === 1; }); if (p) p.img = [m, m2]; })("/ekadashi/img/model-banarasi.jpg");
 </script>
 <script>
 /* ============ CONFIG: client ki details yahan ============ */
