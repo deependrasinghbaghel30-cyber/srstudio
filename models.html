@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E0F12">
+<meta name="robots" content="noindex, nofollow">
+<title>Model Photos · SR Studio</title>
+<style>
+  :root{--bg:#0E0F12;--panel:#16181D;--panel-2:#1D2027;--line:#2A2E37;--gold:#C9A24B;--gold-soft:#E4C67E;--text:#F2F0EA;--muted:#9AA0AC;--danger:#E06B5A;--ok:#7CC69A}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .wrap{max-width:760px;margin:0 auto;padding:16px 16px 120px}
+  header{display:flex;align-items:center;gap:12px;padding:6px 0 16px}
+  header .logo{width:40px;height:40px;border-radius:10px;background:var(--gold);color:#0E0F12;font-weight:800;display:flex;align-items:center;justify-content:center}
+  header h1{font-size:19px;margin:0;font-weight:600}
+  header .sub{font-size:12px;color:var(--muted)}
+  header a{margin-left:auto;color:var(--gold-soft);font-size:13px;text-decoration:none;border:1px solid var(--line);padding:7px 12px;border-radius:9px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:13px;margin:0 0 12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--gold-soft)}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+  .model{display:flex;gap:14px;align-items:center}
+  .model .ph{width:96px;height:128px;border-radius:10px;background:var(--panel-2) center/cover no-repeat;border:1px dashed var(--line);flex:0 0 auto}
+  button,.btn{font:inherit;border:0;border-radius:10px;padding:11px 16px;background:var(--panel-2);color:var(--text);cursor:pointer;border:1px solid var(--line)}
+  button.primary{background:var(--gold);color:#0E0F12;font-weight:700;border-color:var(--gold);width:100%;padding:15px}
+  button:disabled{opacity:.5}
+  .list{display:grid;gap:6px}
+  .list label{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);cursor:pointer}
+  .list label input{margin-top:3px;width:18px;height:18px;accent-color:var(--gold);flex:0 0 auto}
+  .list b{display:block;font-size:14px}.list small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  textarea,select{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font:inherit}
+  textarea{min-height:70px}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .seg label{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel-2);cursor:pointer}
+  .seg input{accent-color:var(--gold)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media(min-width:600px){.grid{grid-template-columns:repeat(3,1fr)}}
+  .res{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .res .im{aspect-ratio:3/4;background:#0b0c0e center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;padding:8px}
+  .res .t{padding:8px 10px;font-size:12.5px}
+  .res .t a{color:var(--gold-soft);margin-right:12px}
+  .res .err{color:var(--danger)}
+  .foot{position:fixed;left:0;right:0;bottom:0;background:rgba(14,15,18,.96);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .foot .in{max-width:760px;margin:0 auto}
+  .spin{width:22px;height:22px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:s 1s linear infinite;margin-bottom:6px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="logo">SR</div><div><h1>Model Photos</h1><div class="sub">Same model, different sarees</div></div><a href="/">← Video studio</a></header>
+
+  <div class="card">
+    <h2>1 · Your model</h2>
+    <div class="model"><div class="ph" id="mph"></div>
+      <div><button id="pick">Choose model photo</button><div class="hint" id="mst">Use a full-body photo of the AI model on a plain background. This face is kept in every photo.</div></div></div>
+    <input type="file" id="file" accept="image/*" hidden>
+  </div>
+
+  <div class="card" id="rcard" hidden>
+    <h2>Photos</h2>
+    <div class="grid" id="res"></div>
+    <div class="hint">Tap <b>Open</b>, then long-press the photo to save it. Photos stay listed here on this phone.</div>
+    <button id="clear" style="margin-top:10px;color:var(--danger)">Clear list</button>
+    <div class="card">
+    <h2>2 · Sarees to make</h2>
+    <div class="row" style="margin-bottom:10px"><button id="all">Select all</button><button id="none">Clear</button><span class="hint" style="margin:0" id="cnt"></span></div>
+    <div class="list" id="list"></div>
+    <div style="margin-top:12px"><b style="font-size:13px">Your own saree (optional)</b>
+      <textarea id="custom" placeholder="e.g. a black Banarasi silk saree with silver zari border"></textarea>
+      <div class="hint">Write one saree per line. Each line makes one photo.</div></div>
+  </div>
+
+  <div class="card">
+    <h2>3 · Quality</h2>
+    <div class="seg">
+      <label><input type="radio" name="q" value="standard" checked> <b>Standard</b><div class="hint" style="margin:2px 0 0">About ₹7 per photo</div></label>
+      <label><input type="radio" name="q" value="best"> <b>Best</b><div class="hint" style="margin:2px 0 0">About ₹13 per photo, face stays closer</div></label>
+    </div>
+    <div class="hint">Charged to your fal.ai account, like videos. Prices are fal.ai's and may change.</div>
+  </div>
+
+</div>
+</div>
+<div class="foot"><div class="in"><button class="primary" id="go">Make photos</button></div></div>
+
+<script>
+/* passcode (only if APP_PASSCODE is set in Vercel) — same as the video studio */
+(function(){
+  const nf = window.fetch.bind(window);
+  window.fetch = async function(input, init){
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if(!url.startsWith('/api/')) return nf(input, init);
+    const go = () => { const h = new Headers((init && init.headers) || {}); const p = localStorage.getItem('srstudio_pass'); if(p) h.set('x-sr-pass', p); return nf(input, Object.assign({}, init || {}, { headers: h })); };
+    let r = await go();
+    if(r.status === 401){ const p = prompt('SR Studio passcode:'); if(p){ localStorage.setItem('srstudio_pass', p.trim()); r = await go(); } }
+    return r;
+  };
+})();
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch(e){ return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+
+const SAREES = [
+ ["Uttar Pradesh","Banarasi","a red Banarasi silk saree with dense gold zari floral butis and a heavy gold zari border and pallu"],
+ ["Punjab","Phulkari","a mustard georgette saree with bright Phulkari silk-thread embroidery of geometric flowers in pink, orange and green"],
+ ["Jammu & Kashmir","Kashmiri Tilla","a navy blue silk saree with Kashmiri Tilla embroidery, fine gold-thread paisley and chinar leaf motifs"],
+ ["Rajasthan","Bandhani","a rani pink Bandhani saree covered in tiny white tie-dye dots with a gold gota border"],
+ ["Gujarat","Patola","a red, ivory and indigo Patan Patola double ikat silk saree with geometric elephant, parrot and flower motifs"],
+ ["Maharashtra","Paithani","a royal purple Paithani silk saree with a gold zari border and a peacock and lotus pallu"],
+ ["Goa","Kunbi","a red and white checked Kunbi handloom cotton saree"],
+ ["Madhya Pradesh","Chanderi","a pastel peach sheer Chanderi silk-cotton saree with small gold zari butis and a slim gold border"],
+ ["Chhattisgarh","Kosa Silk","a natural golden-beige Kosa silk saree with a rust and maroon tribal motif border"],
+ ["Tamil Nadu","Kanjivaram","a bottle green Kanjivaram silk saree with a wide contrast magenta border with gold temple design and a rich zari pallu"],
+ ["Karnataka","Mysore Silk","a magenta Mysore crepe silk saree with a plain smooth body and a pure gold zari border"],
+ ["Kerala","Kasavu","a cream Kerala Kasavu handloom cotton saree with a gold zari border and plain body"],
+ ["Andhra Pradesh","Uppada","a light teal Uppada silk saree with delicate gold jamdani motifs and a zari border"],
+ ["Telangana","Pochampally Ikat","an indigo and red Pochampally ikat silk saree with bold geometric diamond patterns"],
+ ["West Bengal","Tant","a white Bengal Tant cotton saree with a wide red border"],
+ ["Odisha","Sambalpuri","a deep maroon Sambalpuri ikat cotton saree with conch and wheel motifs and a temple pattern border"],
+ ["Bihar","Bhagalpuri Tussar","a beige Bhagalpuri tussar silk saree hand-painted with Madhubani style fish and peacock motifs"],
+ ["Jharkhand","Tussar Silk","a natural golden tussar silk saree with a dark green border"],
+ ["Assam","Muga Mekhela","a golden Muga silk mekhela chador with red woven floral motifs"],
+ ["Manipur","Moirang Phee","an off-white Moirang Phee cotton saree with a row of red temple-shaped triangle motifs along the border"],
+ ["Tripura","Tripura Handloom","a green and yellow striped Tripura handloom cotton saree"]
+];
+const promptFor = d => `Edit this photo. Keep the exact same woman: identical face, skin tone, hairstyle, body, pose and expression, and the same plain warm ivory studio background and soft lighting. Replace only her saree and blouse. She now wears ${d}, with a matching blouse, draped in the traditional way with natural folds and realistic fabric texture and weave detail. Photorealistic full-body fashion catalogue photograph. No text, no watermark.`;
+const RATE = { standard: 7, best: 13 };
+
+let modelUrl = load('srm_model', '');
+let results = load('srm_results', []);   // {id,label,state,status_url,response_url,status,url,error}
+
+$('#list').innerHTML = SAREES.map(([st, w, d], i) => `<label><input type="checkbox" data-i="${i}"><span><b>${esc(st)} · ${esc(w)}</b><small>${esc(d)}</small></span></label>`).join('');
+const chosen = () => {
+  const out = [...document.querySelectorAll('#list input:checked')].map(c => { const s = SAREES[+c.dataset.i]; return { label: s[0] + ' · ' + s[1], prompt: promptFor(s[2]) }; });
+  $('#custom').value.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => out.push({ label: x.slice(0, 40), prompt: promptFor(x) }));
+  return out;
+};
+const q = () => document.querySelector('input[name=q]:checked').value;
+function refresh(){
+  const n = chosen().length;
+  $('#cnt').textContent = n ? `${n} selected` : '';
+  $('#go').textContent = n ? `Make ${n} photo${n > 1 ? 's' : ''} (about ₹${n * RATE[q()]})` : 'Make photos';
+  $('#go').disabled = !n || !modelUrl;
+  $('#mph').style.backgroundImage = modelUrl ? `url('${modelUrl}')` : '';
+  if (modelUrl) $('#mst').textContent = 'Model saved. Choose another photo to change her.';
+}
+document.addEventListener('change', refresh); $('#custom').addEventListener('input', refresh);
+$('#all').onclick = () => { document.querySelectorAll('#list input').forEach(c => c.checked = true); refresh(); };
+$('#none').onclick = () => { document.querySelectorAll('#list input').forEach(c => c.checked = false); refresh(); };
+
+/* model upload: shrink on the phone, then store on fal.ai */
+$('#pick').onclick = () => $('#file').click();
+$('#file').onchange = async () => {
+  const f = $('#file').files[0]; if (!f) return;
+  $('#mst').textContent = 'Uploading…'; $('#pick').disabled = true;
+  try {
+    const dataUrl = await new Promise((res, rej) => {
+      const im = new Image(), u = URL.createObjectURL(f);
+      im.onload = () => { const k = Math.min(1, 1600 / Math.max(im.width, im.height)); const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', 0.9)); };
+      im.onerror = () => rej(new Error('This photo could not be read. Try a JPG or PNG.')); im.src = u;
+    });
+    const r = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl, contentType: 'image/jpeg' }) });
+    const j = await r.json(); if (!r.ok || !j.url) throw new Error(j.error || 'Upload failed.');
+    modelUrl = j.url; save('srm_model', modelUrl);
+  } catch (e) { $('#mst').textContent = e.message; }
+  $('#pick').disabled = false; refresh();
+};
+
+function draw(){
+  $('#rcard').hidden = !results.length;
+  $('#res').innerHTML = results.map(r => `<div class="res">
+    <div class="im" style="${r.url ? `background-image:url('${esc(r.url)}')` : ''}">${r.url ? '' : r.error ? `<span class="err">${esc(r.error)}</span>` : '<div><div class="spin"></div>Making…</div>'}</div>
+    <div class="t"><b>${esc(r.label)}</b><br>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">Open</a>` : ''}${r.error ? `<a href="#" data-retry="${r.id}">Try again</a>` : ''}</div></div>`).join('');
+  document.querySelectorAll('[data-retry]').forEach(a => a.onclick = e => { e.preventDefault(); const r = results.find(x => x.id === a.dataset.retry); if (r) start([{ label: r.label, prompt: r.prompt }], r.quality || q(), r.id); });
+}
+$('#clear').onclick = () => { if (confirm('Remove all photos from this list? (Save the ones you want first.)')) { results = []; save('srm_results', results); draw(); } };
+
+async function start(items, quality, replaceId){
+  const go = $('#go'); go.disabled = true;
+  for (let i = 0; i < items.length; i += 8) {
+    const batch = items.slice(i, i + 8);
+    try {
+      const r = await fetch('/api/edit-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: modelUrl, prompts: batch.map(b => b.prompt), quality, aspect: '3:4' }) });
+      const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Could not start.');
+      j.jobs.forEach((job, k) => {
+        const row = { id: replaceId || (Date.now() + '-' + i + '-' + k), label: batch[k].label, prompt: batch[k].prompt, quality, ...job, status: 'IN_PROGRESS' };
+        const at = results.findIndex(x => x.id === row.id);
+        if (at > -1) results[at] = row; else results.unshift(row);
+      });
+    } catch (e) { alert(e.message); break; }
+  }
+  save('srm_results', results); draw(); refresh(); poll();
+}
+let polling = false;
+async function poll(){
+  if (polling) return; polling = true;
+  while (results.some(r => !r.url && !r.error)) {
+    for (const r of results.filter(r => !r.url && !r.error)) {
+      try {
+        const res = await fetch(`/api/check-image?status_url=${encodeURIComponent(r.status_url)}&response_url=${encodeURIComponent(r.response_url)}`);
+        const j = await res.json();
+        if (j.imageUrl) r.url = j.imageUrl; else if (j.error) r.error = j.error;
+      } catch (e) {}
+    }
+    save('srm_results', results); draw();
+    await new Promise(s => setTimeout(s, 4000));
+  }
+  polling = false;
+}
+$('#go').onclick = () => {
+  const items = chosen(); if (!items.length || !modelUrl) return;
+  if (!confirm(`Make ${items.length} photo(s)? About ₹${items.length * RATE[q()]} on your fal.ai account.`)) return;
+  start(items, q());
+};
+refresh(); draw(); poll();
+</script>
+</body>
+</html>
