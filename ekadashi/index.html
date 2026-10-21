@@ -193,7 +193,7 @@ nav.main a:hover,nav.main button:hover,nav.main button[aria-expanded="true"]{bor
 .card .wsh{position:absolute;top:8px;right:8px;width:34px;height:34px;border:0;background:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .card .wsh svg{width:20px;height:20px}
 .card .wsh.on svg{fill:#fff}
-.badge{position:absolute;left:0;bottom:0;z-index:2;font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:5px 10px;background:rgba(252,247,240,.94);color:#1C1512}
+.badge{position:absolute;left:0;top:0;z-index:2;font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:5px 10px;background:rgba(252,247,240,.94);color:#1C1512}
 .badge.out{background:#1C1512;color:#F6EBD9}
 .card .info{padding:14px 2px 0;display:grid;gap:3px}
 .card .loc{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--zari)}
@@ -351,6 +351,59 @@ body.pdp-on .mbar{display:none}
 @media(min-width:900px){.fab{display:flex}}
 .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:#1C1512;color:#F6EBD9;padding:11px 20px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:0;pointer-events:none;transition:.25s;z-index:80;white-space:nowrap}
 .toast.on{opacity:1;transform:translateX(-50%)}
+
+/* ---- upgrades: load sequence, trust bar, edits, weave spotlight, quick order ---- */
+@media (prefers-reduced-motion: no-preference){
+  .jrow figure{animation:rise 1s cubic-bezier(.2,.7,.2,1) both}
+  .jrow figure:nth-child(1){animation-delay:.1s}.jrow figure:nth-child(2){animation-delay:.2s}.jrow figure:nth-child(3){animation-delay:.3s}.jrow figure:nth-child(4){animation-delay:.4s}.jrow figure:nth-child(5){animation-delay:.5s}
+  .hero h1 em{background:linear-gradient(100deg,#D4B072 20%,#F8E7BB 45%,#D4B072 70%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sheen 7s ease-in-out infinite}
+}
+@keyframes rise{from{transform:translateY(48px);opacity:.35}}
+@keyframes sheen{0%,100%{background-position:100% 0}50%{background-position:0 0}}
+.jrow figure a{display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+.jrow figure a:hover{transform:translateY(-8px)}
+.trust{background:var(--paper);border-bottom:1px solid var(--line)}
+.trust .wrap{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 14px;padding-block:22px}
+@media(min-width:900px){.trust .wrap{grid-template-columns:repeat(4,1fr);gap:24px;padding-block:26px}}
+.trust div{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.trust svg{width:28px;height:28px;flex:0 0 auto;color:var(--zari)}
+.trust b{display:block;font-family:var(--display);font-size:18px;font-weight:500;line-height:1.15}
+.trust small{display:block;color:var(--muted);font-size:13px;line-height:1.35;margin-top:2px}
+.edits{display:grid;gap:14px}
+@media(min-width:800px){.edits{grid-template-columns:1.25fr 1fr;grid-auto-rows:260px;gap:20px}.edits a:first-child{grid-row:span 2}}
+.edits a{position:relative;overflow:hidden;min-height:220px;display:flex;align-items:flex-end;color:#FBF3E4}
+.edits a>svg{position:absolute;inset:0;width:100%;height:100%;transition:transform 1.2s cubic-bezier(.2,.7,.2,1)}
+.edits a:hover>svg{transform:scale(1.05)}
+.edits a::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(28,8,12,.05) 20%,rgba(28,8,12,.82));z-index:1}
+.edits a::after{content:"";position:absolute;inset:10px;border:1px solid rgba(232,200,140,.55);z-index:1;pointer-events:none}
+.edits .t{position:relative;z-index:2;padding:26px 28px}
+.edits .t .eyebrow{color:#E9C98F}
+.edits .t b{display:block;font-family:var(--display);font-weight:500;font-size:clamp(28px,3vw,40px);line-height:1.05;margin:6px 0 6px}
+.edits .t small{display:block;font-size:14px;opacity:.9;max-width:36ch}
+.edits .t i{display:inline-block;font-style:normal;font-size:11px;letter-spacing:.22em;text-transform:uppercase;margin-top:12px;border-bottom:1px solid #E9C98F;padding-bottom:3px}
+.spot{background:var(--soft);margin-top:88px;padding-block:64px}
+.spin{display:grid;gap:34px;align-items:center}
+@media(min-width:860px){.spin{grid-template-columns:minmax(0,420px) 1fr;gap:72px}}
+.spin .archf{border-color:var(--zari)}
+.spin .arch{aspect-ratio:3/3.7}
+.spin h2{font-size:clamp(38px,4.6vw,58px);margin:10px 0 18px}
+.spin h2 em{font-style:italic;color:var(--kum)}
+.spin p.dc{color:var(--muted);margin:0;max-width:58ch;font-size:16.5px}
+.spin p.dc::first-letter{font-family:var(--display);float:left;font-size:64px;line-height:.8;padding:6px 10px 0 0;color:var(--kum)}
+.spin dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 26px;margin:26px 0 30px;padding-top:22px;border-top:1px solid var(--line)}
+.spin dt{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--zari)}
+.spin dd{margin:3px 0 0;font-family:var(--display);font-size:20px}
+.pricechips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:28px}
+.pricechips a{border:1px solid var(--line);padding:10px 18px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;background:var(--paper)}
+.pricechips a:hover{border-color:var(--zari);color:var(--kum)}
+.cta .ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.phw{position:relative;overflow:hidden}
+.card .qo{display:none}
+@media (hover:hover) and (min-width:900px){
+  .card .qo{display:flex;position:absolute;left:0;right:0;bottom:0;z-index:3;align-items:center;justify-content:center;gap:8px;padding:13px 10px;background:rgba(110,20,35,.94);color:#FBF3E4;font-size:11px;letter-spacing:.2em;text-transform:uppercase;transform:translateY(101%);transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+  .card .qo svg{width:15px;height:15px}
+  .card:hover .qo,.card:focus-within .qo{transform:none}
+}
 </style>
 </head>
 <body>
@@ -592,8 +645,9 @@ function card(p){
   const st = stateOf(p.state), on = wish.includes(p.id);
   const off = p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0;
   return `<article class="card">
-    <a href="#/p/${p.id}" class="ph" aria-label="${esc(p.name)}">${photoOr(p, "card")}
+    <div class="phw"><a href="#/p/${p.id}" class="ph" aria-label="${esc(p.name)}">${photoOr(p, "card")}
       ${p.stock === "out" ? `<span class="badge out">Sold out</span>` : p.stock === "made" ? `<span class="badge">Made to order</span>` : ""}</a>
+    ${p.stock !== "out" ? `<a class="qo" target="_blank" rel="noopener" href="${wa(`Hi Ekadashi Heritage, I'd like to order this saree:\n${p.name}\nCode: ${code(p.id)}\nPrice: ${inr(p.price)}\n${pageUrl(p.id)}`)}">${ICO.wa}Order on WhatsApp</a>` : ""}</div>
     <button class="wsh${on ? " on" : ""}" data-wish="${p.id}" aria-label="${on ? "Remove from wishlist" : "Save to wishlist"}">${ICO.heart}</button>
     <a href="#/p/${p.id}" class="info"><div class="loc">${esc(st ? st.name : "")} · ${esc(p.weave)}</div><div class="nm">${esc(p.name)}</div>
       <div class="price"><b>${inr(p.price)}</b>${off ? `<s>${inr(p.mrp)}</s><span class="off">${off}% off</span>` : ""}</div></a>
@@ -607,6 +661,16 @@ function stateTile(s){
     <b>${esc(s.name)}</b><small>${esc((s.weaves || []).join(" · "))}</small><em>${n ? n + (n === 1 ? " saree" : " sarees") : "Ask us for this weave"}</em></a>`;
 }
 
+/* ============ EDITS & SPOTLIGHT ============ */
+const EDITS = [
+  { key: "bridal", name: "The Bridal Edit", sub: "Banarasi, Kanjivaram and Paithani silks for the big day", art: "uttar-pradesh", f: p => (p.occasion || []).includes("Wedding") && p.price >= 10000 },
+  { key: "festive", name: "The Festive Edit", sub: "Silk and zari for Diwali and every puja", art: "maharashtra", f: p => (p.occasion || []).includes("Festive") },
+  { key: "cotton", name: "Handloom Cottons", sub: "Tant, Kasavu, Kota Doria and Mangalagiri", art: "kerala", f: p => p.fabric === "Cotton" }
+];
+const PRICE_EDITS = { "under-5000": ["Under ₹5,000", p => p.price < 5000], "5000-15000": ["₹5,000 – ₹15,000", p => p.price >= 5000 && p.price <= 15000], "above-15000": ["Above ₹15,000", p => p.price > 15000] };
+const SPOTLIGHT = { state: "uttar-pradesh", weave: "Banarasi Silk", place: "Varanasi",
+  facts: [["Woven in", "Varanasi, Uttar Pradesh"], ["Fabric", "Mulberry silk with zari"], ["Worn for", "Weddings and festivals"], ["Look for", "Kadhua butis, heavy pallu"]] };
+
 /* ============ HOME ============ */
 let REGION = "All";
 const archArt = (s, o = {}) => `<div class="arch">${sareeArt(s, { w: 240, h: 340, scale: 1.25, ...o })}</div>`;
@@ -614,8 +678,9 @@ function home(){
   const vs = visStates();
   const hero = (PHOTOS.hero || [])[0];
   const row = ["west-bengal", "tamil-nadu", "uttar-pradesh", "maharashtra", "gujarat"].map(stateOf).filter(Boolean);
-  const heroArt = hero ? `<div class="hphoto"><img src="${esc(hero)}" alt="Saree from Ekadashi Heritage"></div>` :
-    `<div class="jrow">${row.map(s => `<figure><a href="#/state/${s.key}"><div class="archf">${archArt(s, { label: s.weaves[0] })}</div><figcaption>${esc(s.weaves[0])}<small>${esc(s.name)}</small></figcaption></a></figure>`).join("")}</div>`;
+  const hp = PHOTOS.hero || [];
+  const heroArt = `<div class="jrow">${row.map((s, i) => `<figure><a href="#/state/${s.key}"><div class="archf">${hp.length ? `<div class="arch"><img src="${esc(hp[i % hp.length])}" alt="${esc(s.weaves[0])} saree"></div>` : archArt(s, { label: s.weaves[0] })}</div><figcaption>${esc(s.weaves[0])}<small>${esc(s.name)}</small></figcaption></a></figure>`).join("")}</div>`;
+  const spot = stateOf(SPOTLIGHT.state);
   const feat = P.filter(p => p.featured && inStock(p));
   const fresh = [...P].filter(inStock).sort((a, b) => b.id - a.id).slice(0, 8);
   const regions = ["All", ...REGIONS.filter(r => vs.some(s => s.region === r))];
@@ -634,6 +699,13 @@ function home(){
   </div></section>
   <div class="loom" aria-label="Weaves"><div class="track">${loomItems}${loomItems.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ')}</div></div>
 
+  <div class="trust"><div class="wrap">
+    <div><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="4" y="6" width="20" height="16" rx="1"/><circle cx="14" cy="14" r="4"/><path d="M10 6l1.5-2h5L18 6"/></svg><span><b>Real photos on request</b><small>See the actual saree before you decide</small></span></div>
+    <div><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="8" width="15" height="12" rx="1"/><path d="m18 12 7-4v12l-7-4"/></svg><span><b>Video call before you buy</b><small>Look at the border, pallu and drape live</small></span></div>
+    <div><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M14 3 5 7v6c0 5.5 3.8 10 9 12 5.2-2 9-6.5 9-12V7z"/><path d="m10 14 3 3 5-6"/></svg><span><b>Pay after you confirm</b><small>No payment on the website, ever</small></span></div>
+    <div><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M5 22c1.5-4 5-6 9-6s7.5 2 9 6"/><circle cx="14" cy="9" r="4.5"/></svg><span><b>Personal help</b><small>Tell us the occasion, we help you choose</small></span></div>
+  </div></div>
+
   <div class="wrap">
   <section class="blk" id="states">
     <div class="sh2"><div class="eyebrow">Shop by state</div><h2>A weave from every corner of India</h2><div class="orn"><i>✦</i></div></div>
@@ -643,6 +715,21 @@ function home(){
 
   ${feat.length ? `<section class="blk"><div class="sh2"><div class="eyebrow">Handpicked</div><h2>The Ekadashi edit</h2><a class="more" href="#/s/all">View all sarees</a></div><div class="rail">${feat.map(card).join("")}</div></section>` : ""}
 
+  <section class="blk"><div class="sh2"><div class="eyebrow">Curated for you</div><h2>The Edits</h2><div class="orn"><i>✦</i></div></div>
+    <div class="edits">${EDITS.map(e => `<a href="#/edit/${e.key}">${sareeArt(stateOf(e.art) || STATES[0], { w: 700, h: 520, scale: 2, label: e.name })}<div class="t"><div class="eyebrow">${P.filter(e.f).length ? P.filter(e.f).length + " sarees" : "Ask us"}</div><b>${esc(e.name)}</b><small>${esc(e.sub)}</small><i>Explore</i></div></a>`).join("")}</div>
+    <div class="pricechips"><a href="#/edit/under-5000">Under ₹5,000</a><a href="#/edit/5000-15000">₹5,000 – ₹15,000</a><a href="#/edit/above-15000">Above ₹15,000</a></div>
+  </section>
+  </div>
+
+  ${spot ? `<section class="spot"><div class="wrap spin">
+    <div class="archf"><div class="arch">${(PHOTOS["state_" + spot.key] || [])[0] ? `<img src="${esc(PHOTOS["state_" + spot.key][0])}" alt="">` : sareeArt(spot, { w: 360, h: 440, scale: 1.6, label: SPOTLIGHT.weave })}</div></div>
+    <div><div class="eyebrow">Weave in focus</div><h2>${esc(SPOTLIGHT.weave)} <em>of ${esc(SPOTLIGHT.place)}</em></h2>
+      <p class="dc">${esc(spot.note || "")}</p>
+      <dl>${SPOTLIGHT.facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+      <a class="btn" href="#/state/${spot.key}">Explore ${esc(SPOTLIGHT.weave.split(" ")[0])}</a></div>
+  </div></section>` : ""}
+
+  <div class="wrap">
   <section class="blk"><div class="sh2"><div class="eyebrow">Shop by occasion</div><h2>For every day that matters</h2><div class="orn"><i>✦</i></div></div>
     <div class="ogrid">${OCCASIONS.map(o => { const img = (PHOTOS["occ_" + o] || [])[0]; return `<a class="oc" href="#/occasion/${encodeURIComponent(o)}"><div class="archf" style="border-color:var(--line)">${img ? `<div class="arch"><img src="${esc(img)}" alt="" loading="lazy"></div>` : archArt(stateOf(occArt[o]) || STATES[0])}</div><b>${esc(o)}</b><small>${esc(occTxt[o] || "")}</small></a>`; }).join("")}</div>
   </section>
@@ -662,7 +749,8 @@ function home(){
     <div class="eyebrow" style="color:var(--gold)">Can't find it?</div>
     <h2>Looking for a particular weave?</h2>
     <p>Tell us the state, colour and budget. We'll find it for you and send real photos on WhatsApp.</p>
-    <a class="btn gold" href="${wa("Hi Ekadashi Heritage, I'm looking for a particular saree.\nWeave / state: \nColour: \nBudget: ")}" target="_blank" rel="noopener">${ICO.wa}Ask on WhatsApp</a></div></section>`;
+    <div class="ctas"><a class="btn gold" href="${wa("Hi Ekadashi Heritage, I'm looking for a particular saree.\nWeave / state: \nColour: \nBudget: ")}" target="_blank" rel="noopener">${ICO.wa}Ask on WhatsApp</a>
+    <a class="btn line" href="${wa("Hi Ekadashi Heritage, please add me to your new arrivals list on WhatsApp.")}" target="_blank" rel="noopener">Get new arrivals on WhatsApp</a></div></div></section>`;
 }
 
 /* ============ ALL STATES PAGE ============ */
@@ -861,6 +949,11 @@ function route(){
     const intro = `<div class="sban"><div class="t"><div class="eyebrow">${esc(s.region)} India</div><h1>Sarees of ${esc(s.name)}</h1><p>${esc(s.note || "")}</p><div class="wv">${(s.weaves || []).map(w => `<span>${esc(w)}</span>`).join("")}</div></div><div class="a"><div class="archf"><div class="arch">${img ? `<img src="${esc(img)}" alt="">` : sareeArt(s, { w: 300, h: 360, scale: 1.4 })}</div></div></div></div>`;
     html = listing(s.name, `<a href="#/">Home</a> / <a href="#/states">States</a> / ${esc(s.name)}`, P.filter(p => p.state === s.key), intro, "state");
     title = s.name + " sarees";
+  }
+  else if (parts[0] === "edit" && (EDITS.some(e => e.key === parts[1]) || PRICE_EDITS[parts[1]])) {
+    const e = EDITS.find(x => x.key === parts[1]), pe = PRICE_EDITS[parts[1]];
+    const name = e ? e.name : pe[0], f = e ? e.f : pe[1];
+    html = listing(name, crumbs(name), P.filter(f), `<div class="lhead"><div class="eyebrow">Curated edit</div><h1 style="margin-top:8px">${esc(name)}</h1>${e ? `<p>${esc(e.sub)}</p>` : ""}</div>`, ""); title = name;
   }
   else if (parts[0] === "occasion" && OCCASIONS.includes(parts[1])) {
     html = listing(parts[1], crumbs(parts[1]), P.filter(p => (p.occasion || []).includes(parts[1])), `<div class="lhead"><h1>${esc(parts[1])} sarees</h1></div>`, "occ"); title = parts[1] + " sarees";
