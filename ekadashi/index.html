@@ -404,6 +404,33 @@ body.pdp-on .mbar{display:none}
   .card .qo svg{width:15px;height:15px}
   .card:hover .qo,.card:focus-within .qo{transform:none}
 }
+
+/* ---- DARBAR look: dark royal edition (STORE.look = "darbar") ---- */
+:root[data-look="darbar"]{color-scheme:dark;--bg:#0E0A09;--paper:#16100E;--soft:#1D1512;--ink:#EFE4D2;--muted:#A7978A;--line:#2D231F;--kum:#E2A0A9;--btn:#C9A45F;--btn-ink:#1A0E0C;--zari:#C9A45F;--ok:#8FCBA5;--warn:#F08A80}
+:root[data-look="darbar"] body::before{background:var(--bg)}
+:root[data-look="darbar"] header.top{background:rgba(14,10,9,.88)}
+:root[data-look="darbar"] .logo .wm b{color:#F2E4C6}
+:root[data-look="darbar"] .btn.ghost:hover{color:#0E0A09}
+:root[data-look="darbar"] footer{border-top:1px solid var(--line);background:#0A0706}
+:root[data-look="darbar"] .badge{background:rgba(14,10,9,.85);color:#EFE4D2}
+:root[data-look="darbar"] .spot{background:#130E0C;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+:root[data-look="darbar"] .cta{background:radial-gradient(120% 140% at 50% 0%,#3A0D16 0%,#160809 100%);border-top:1px solid var(--line)}
+:root[data-look="darbar"] .pricechips a{background:transparent}
+.dhero{position:relative;overflow:hidden;background:#0E0A09}
+.dtrip{display:grid;grid-template-columns:1fr;height:clamp(560px,88vh,880px)}
+@media(min-width:760px){.dtrip{grid-template-columns:1fr 1.25fr 1fr;gap:3px}}
+.dtrip>div{position:relative;overflow:hidden}
+.dtrip>div:not(:nth-child(2)){display:none}
+@media(min-width:760px){.dtrip>div:not(:nth-child(2)){display:block}}
+.dtrip svg,.dtrip img{width:100%;height:100%;object-fit:cover;display:block}
+@media (prefers-reduced-motion: no-preference){.dtrip svg,.dtrip img{animation:slowzoom 18s ease-out both}}
+@keyframes slowzoom{from{transform:scale(1.12)}}
+.dhero::after{content:"";position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 45%,rgba(14,10,9,.15),rgba(14,10,9,.78)),linear-gradient(180deg,rgba(14,10,9,.55) 0%,transparent 30%,transparent 50%,rgba(14,10,9,.95) 100%);pointer-events:none}
+.dcap{position:absolute;left:0;right:0;bottom:0;z-index:2;text-align:center;padding-bottom:64px;color:#F2E4C6}
+.dcap .eyebrow{color:#D9B877}
+.dcap h1{font-size:clamp(42px,6.6vw,92px);font-weight:400;margin:14px 0 26px;line-height:1.02;color:#F6EAD3}
+.dcap h1 em{color:#D9B877}
+.dcap .ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 </style>
 </head>
 <body>
@@ -536,7 +563,8 @@ const STORE = {
   email: "",
   city: "",                     // e.g. "Mumbai" — shown in the footer if filled
   instagram: "",                // full https link
-  site: "https://ekadashiheritage.com"
+  site: "https://ekadashiheritage.com",
+  look: "classic"                // "classic" = ivory & maroon, "darbar" = dark royal
 };
 /* ============ SHOP RULES: sirf wahi likhein jo sach mein dete ho ============
    Khali ("") ya false = website par nahi dikhega.                         */
@@ -689,14 +717,20 @@ function home(){
   const occTxt = { Wedding: "Banarasi, Kanjivaram, Paithani", Festive: "Silk and zari for pujas", Party: "Bandhani, Chikankari, Mysore silk", Office: "Light silks, crisp cottons", "Daily wear": "Breathable handloom cotton" };
   const loomItems = vs.flatMap(s => (s.weaves || []).slice(0, 2).map(w => `<a href="#/state/${s.key}">${esc(w)}<small>${esc(s.name)}</small></a><span class="dot" aria-hidden="true">✦</span>`)).join("");
   const nWeaves = vs.reduce((a, s) => a + (s.weaves || []).length, 0);
+  const darbar = STORE.look === "darbar";
+  const trip = ["maharashtra", "uttar-pradesh", "tamil-nadu"].map(stateOf).filter(Boolean);
+  const dHero = `<section class="dhero"><div class="dtrip">${trip.map((s, i) => `<div>${hp.length ? `<img src="${esc(hp[i % hp.length])}" alt="">` : sareeArt(s, { w: 480, h: 860, scale: 1.9, label: s.weaves[0] })}</div>`).join("")}</div>
+    <div class="dcap wrap"><div class="eyebrow">Ekadashi Heritage · ${vs.length} states of India</div>
+      <h1>Woven in India.<br><em>Worn for generations.</em></h1>
+      <div class="ctas"><a class="btn gold" href="#/states">Explore the collection</a><a class="btn line" href="${wa("Hi Ekadashi Heritage, I'm looking for a saree. Can you help me choose?")}" target="_blank" rel="noopener">${ICO.wa}Talk to us</a></div></div></section>`;
   return `
-  <section class="hero"><div class="wrap hin">
+  ${darbar ? dHero : `<section class="hero"><div class="wrap hin">
     <div class="eyebrow">${vs.length} states · ${nWeaves} traditional weaves</div>
     <h1>The sarees of India, <em>state by state</em></h1>
     <p class="lede">From the zari silks of Varanasi to the gold-bordered kasavu of Kerala. Traditional weaves, chosen with care and ordered personally on WhatsApp.</p>
     <div class="ctas"><a class="btn gold" href="#/states">Explore by state</a><a class="btn line" href="${wa("Hi Ekadashi Heritage, I'm looking for a saree. Can you help me choose?")}" target="_blank" rel="noopener">${ICO.wa}Talk to us</a></div>
     ${heroArt}
-  </div></section>
+  </div></section>`}
   <div class="loom" aria-label="Weaves"><div class="track">${loomItems}${loomItems.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ')}</div></div>
 
   <div class="trust"><div class="wrap">
@@ -1038,6 +1072,7 @@ $("#searchForm").addEventListener("submit", e => { e.preventDefault(); go(qi.val
 $("#searchForm2").addEventListener("submit", e => { e.preventDefault(); go($("#q2").value); $("#msearchBox").classList.remove("open"); });
 window.addEventListener("hashchange", () => { route(); scrollTo(0, 0); });
 
+document.documentElement.dataset.look = STORE.look || "classic";
 function chrome(){
   $("#pays").innerHTML = (SHOP.payments || []).concat(SHOP.cod ? ["Cash on delivery"] : []).map(x => `<span>${esc(x)}</span>`).join("");
   if (SHOP.offer) { $("#strip").hidden = false; $("#stripmsg").textContent = SHOP.offer; }
