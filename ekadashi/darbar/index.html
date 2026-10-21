@@ -525,11 +525,13 @@ const OCCASIONS = ["Wedding", "Festive", "Party", "Office", "Daily wear"];
 
 /* Website photos (filled from the admin panel later) */
 const PHOTOS = {
-  hero: ["/ekadashi/img/model-banarasi.jpg", "/ekadashi/img/model-kanjivaram.jpg"],   // big photos at the top (centre first)
+  hero: ["/ekadashi/img/model-banarasi.jpg", "/ekadashi/img/model-kanjivaram.jpg", "/ekadashi/img/model-paithani.jpg"],   // big photos at the top (centre first)
   spot: ["/ekadashi/img/model-banarasi.jpg"], edit_bridal: ["/ekadashi/img/model-banarasi.jpg"],
-  occ_Wedding: ["/ekadashi/img/model-banarasi.jpg"], occ_Festive: ["/ekadashi/img/model-kanjivaram.jpg"], occ_Office: [], "occ_Daily wear": [], occ_Party: [],
+  occ_Wedding: ["/ekadashi/img/model-banarasi.jpg"], occ_Festive: ["/ekadashi/img/model-paithani.jpg"], occ_Office: [], "occ_Daily wear": [], occ_Party: [],
   "state_uttar-pradesh": ["/ekadashi/img/model-banarasi.jpg"],
-  "state_tamil-nadu": ["/ekadashi/img/model-kanjivaram.jpg"]
+  "state_tamil-nadu": ["/ekadashi/img/model-kanjivaram.jpg"],
+  state_maharashtra: ["/ekadashi/img/model-paithani.jpg"],
+  edit_festive: ["/ekadashi/img/model-paithani.jpg"]
 };
 
 /* SAMPLE sarees — for the preview only. They are never copied into the admin
@@ -537,7 +539,7 @@ const PHOTOS = {
 const P = [
  {id:1, name:"Red Banarasi Silk Saree with Gold Zari Butis", state:"uttar-pradesh", weave:"Banarasi Silk",  fabric:"Silk",        color:"#7A1020", colorName:"Red",    occasion:["Wedding","Festive"], price:12500, stock:"in",   blouse:true, featured:true, img:["/ekadashi/img/model-banarasi.jpg"]},
  {id:2, name:"Bottle Green Kanjivaram Silk Saree, Magenta Border", state:"tamil-nadu", weave:"Kanjivaram Silk", fabric:"Silk", color:"#1B5E4A", colorName:"Green",  occasion:["Wedding","Festive"], price:24900, stock:"in",   blouse:true, featured:true, img:["/ekadashi/img/model-kanjivaram.jpg"]},
- {id:3, name:"Purple Paithani Silk Saree with Peacock Pallu", state:"maharashtra",  weave:"Paithani",       fabric:"Silk",        color:"#5B1A6E", colorName:"Purple", occasion:["Wedding","Festive"], price:18500, stock:"made", blouse:true, featured:true},
+ {id:3, name:"Purple Paithani Silk Saree with Peacock Pallu", state:"maharashtra",  weave:"Paithani",       fabric:"Silk",        color:"#5B1A6E", colorName:"Purple", occasion:["Wedding","Festive"], price:18500, stock:"made", blouse:true, featured:true, img:["/ekadashi/img/model-paithani.jpg"]},
  {id:4, name:"Rajkot Patola Single Ikat Silk Saree",          state:"gujarat",       weave:"Patola",         fabric:"Silk",        color:"#9E1B1B", colorName:"Red",    occasion:["Wedding","Festive"], price:16900, stock:"in",   blouse:true},
  {id:5, name:"Rani Pink Bandhani Gajji Silk Saree",           state:"rajasthan",     weave:"Bandhani",       fabric:"Silk",        color:"#C2185B", colorName:"Pink",   occasion:["Festive","Party"],   price:6800,  stock:"in",   blouse:true, featured:true},
  {id:6, name:"Mustard Kota Doria Cotton Saree",               state:"rajasthan",     weave:"Kota Doria",     fabric:"Cotton",      color:"#D8A31A", colorName:"Yellow", occasion:["Office","Daily wear"],price:2450, stock:"in",   blouse:false},
