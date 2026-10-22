@@ -425,9 +425,13 @@ body.pdp-on .mbar{display:none}
 .dhero{position:relative;overflow:hidden;background:#0E0A09}
 .dtrip{display:grid;grid-template-columns:1fr;height:clamp(560px,88vh,880px)}
 @media(min-width:760px){.dtrip{grid-template-columns:1fr 1.25fr 1fr;gap:3px}}
-.dtrip>div{position:relative;overflow:hidden}
-.dtrip>div:not(:nth-child(2)){display:none}
-@media(min-width:760px){.dtrip>div:not(:nth-child(2)){display:block}}
+.dtrip>div,.dtrip>.rot{position:relative;overflow:hidden;display:block}
+.dtrip .rot img{position:absolute;inset:0}
+.dtrip .rot img.in{opacity:0;transition:opacity 1.4s ease}
+.dtrip .rot img.in.on{opacity:1}
+.dtrip .rcap{position:absolute;z-index:3;left:0;right:0;top:22px;text-align:center;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#E9D3A0;text-shadow:0 1px 8px rgba(0,0,0,.7);transition:opacity .6s ease}
+.dtrip>*:not(:nth-child(2)){display:none}
+@media(min-width:760px){.dtrip>*:not(:nth-child(2)){display:block}}
 .dtrip svg,.dtrip img{width:100%;height:100%;object-fit:cover;display:block}
 @media (prefers-reduced-motion: no-preference){.dtrip svg,.dtrip img{animation:slowzoom 18s ease-out both}}
 @keyframes slowzoom{from{transform:scale(1.12)}}
@@ -783,6 +787,38 @@ const SPOTLIGHT = { state: "uttar-pradesh", weave: "Banarasi Silk", place: "Vara
 /* ============ HOME ============ */
 let REGION = "All";
 const archArt = (s, o = {}) => `<div class="arch">${sareeArt(s, { w: 240, h: 340, scale: 1.25, ...o })}</div>`;
+/* hero photos rotate: the set photos first, then every saree that has a model photo */
+function heroPool(){
+  const out = [], seen = new Set();
+  const add = (src, state, label) => { if (src && !seen.has(src)) { seen.add(src); out.push({ src, state, label }); } };
+  (PHOTOS.hero || []).forEach(src => { const p = P.find(x => pics(x).includes(src)); add(src, p ? p.state : "", p ? `${p.weave} · ${stateOf(p.state)?.name || ""}` : ""); });
+  P.filter(p => pics(p).length && visStates().some(s => s.key === p.state)).forEach(p => add(pics(p)[0], p.state, `${p.weave} · ${stateOf(p.state)?.name || ""}`));
+  return out;
+}
+let ROT = 0;
+function startRot(){
+  clearInterval(ROT);
+  const slots = [...document.querySelectorAll(".dtrip .rot")];
+  if (!slots.length) return;
+  const pool = heroPool();
+  if (pool.length <= slots.length) return;
+  let next = Math.max(...slots.map(s => +s.dataset.k)) + 1, turn = 0;
+  const order = [1, 0, 2];
+  ROT = setInterval(() => {
+    if (document.hidden) return;
+    const vis = order.map(n => slots[n]).filter(s => s && s.offsetParent !== null);
+    if (!vis.length || !document.body.contains(vis[0])) return clearInterval(ROT);
+    const el = vis[turn++ % vis.length], it = pool[next % pool.length]; next++;
+    const im = new Image(); im.alt = ""; im.src = it.src; im.className = "in";
+    im.onload = () => {
+      el.appendChild(im);
+      requestAnimationFrame(() => requestAnimationFrame(() => im.classList.add("on")));
+      setTimeout(() => { el.querySelectorAll("img:not(:last-of-type)").forEach(x => x.remove()); im.classList.remove("in", "on"); }, 1500);
+      el.href = "#/state/" + it.state; el.setAttribute("aria-label", it.label);
+      const c = el.querySelector(".rcap"); if (c) { el.appendChild(c); c.style.opacity = 0; setTimeout(() => { c.textContent = it.label; c.style.opacity = ""; }, 700); }
+    };
+  }, 3200);
+}
 function home(){
   const vs = visStates();
   const hero = (PHOTOS.hero || [])[0];
@@ -801,7 +837,8 @@ function home(){
   const nWeaves = vs.reduce((a, s) => a + (s.weaves || []).length, 0);
   const darbar = STORE.look === "darbar";
   const trip = ["maharashtra", "uttar-pradesh", "tamil-nadu"].map(stateOf).filter(Boolean);
-  const dHero = `<section class="dhero"><div class="dtrip">${trip.map((s, i) => `<div>${slot([1, 0, 2], i) ? `<img src="${esc(slot([1, 0, 2], i))}" alt="">` : sareeArt(s, { w: 480, h: 860, scale: 1.9, label: s.weaves[0] })}</div>`).join("")}</div>
+  const pool = heroPool();
+  const dHero = `<section class="dhero"><div class="dtrip">${trip.map((s, i) => { const k = [1, 0, 2][i]; const it = pool[k]; return it ? `<a class="rot" data-k="${k}" href="#/state/${it.state}" aria-label="${esc(it.label)}"><img src="${esc(it.src)}" alt=""><span class="rcap">${esc(it.label)}</span></a>` : `<div>${sareeArt(s, { w: 480, h: 860, scale: 1.9, label: s.weaves[0] })}</div>`; }).join("")}</div>
     <div class="dcap wrap"><div class="eyebrow">Connecting threads of Bharat · ${vs.length} states</div>
       <h1>Woven in India.<br><em>Worn for generations.</em></h1>
       <div class="ctas"><a class="btn gold" href="#/states">Explore the collection</a><a class="btn line" href="${wa("Hi Ekadashi Heritage, I'm looking for a saree. Can you help me choose?")}" target="_blank" rel="noopener">${ICO.wa}Talk to us</a></div></div></section>`;
@@ -1096,6 +1133,7 @@ function route(){
 }
 function rerender(){ const y = scrollY; route(); scrollTo(0, y); }
 function bindView(){
+  startRot();
   document.querySelectorAll("[data-region]").forEach(b => b.onclick = () => { REGION = b.dataset.region; rerender(); });
   const so = $("#sort"); if (so) { so.value = LST.sort; so.onchange = () => { LST.sort = so.value; rerender(); }; }
   document.querySelectorAll("[data-f]").forEach(i => i.onchange = () => {
