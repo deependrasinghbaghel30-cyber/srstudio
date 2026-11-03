@@ -452,6 +452,7 @@ body.pdp-on .mbar{display:none}
 .dcap h1 em{color:#D9B877}
 .dcap .ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 </style>
+<script src="/ekadashi/admin-config.js"></script>
 </head>
 <body>
 <div class="strip" id="strip" hidden><span id="stripmsg"></span></div>
@@ -1216,7 +1217,7 @@ function chrome(){
    Sarees, states and photos saved in the admin panel are read here. Everything
    from the database is cleaned before it reaches the page, so even a hijacked
    admin login cannot inject script into the shop. */
-const LIVE = { projectId: "", apiKey: "" };   // filled in when the Firebase project is created
+const LIVE = window.EKADASHI_FIREBASE || { projectId: "", apiKey: "" };
 function fsv(v){
   if (!v) return null;
   if ("stringValue" in v) return v.stringValue;
@@ -1263,7 +1264,7 @@ function applyLive(d){
   const c = d.config;
   if (c.states && c.states.length) { STATES.length = 0; c.states.forEach(s => STATES.push(s)); }
   if (c.photos) for (const k in c.photos) PHOTOS[k] = c.photos[k];
-  const list = d.products.filter(p => !p.hidden && stateOf(p.state));
+  const list = d.products.filter(p => !p.hidden && stateOf(p.state) && !stateOf(p.state).hidden);
   list.sort((a, b) => (!!b.featured - !!a.featured) || (a.order - b.order) || (a.id - b.id));
   P.length = 0; list.forEach(p => P.push(p));          // live list replaces the sample sarees, even when empty
 }

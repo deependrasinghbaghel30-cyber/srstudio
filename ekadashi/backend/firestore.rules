@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function verified() { return request.auth != null && request.auth.token.email_verified == true; }
+    function self(email) { return verified() && request.auth.token.email.lower() == email; }
+    function member() { return get(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())).data; }
+    function editor() { return verified() && member().enabled == true && member().uid == request.auth.uid && member().role in ['owner', 'editor']; }
+    function owner() { return editor() && member().role == 'owner'; }
+    match /admins/{email} {
+      allow get: if self(email) || owner();
+      allow list: if owner();
+      allow create: if owner() && request.resource.data.keys().hasOnly(['role','enabled','uid','invitedBy']) && request.resource.data.role == 'editor' && request.resource.data.enabled == true && request.resource.data.uid == '' && request.resource.data.invitedBy == request.auth.uid;
+      // A verified invited email can bind its invitation to its own UID only.
+      allow update: if self(email) && resource.data.enabled == true && resource.data.uid == '' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid;
+      allow delete: if owner() && resource.data.role != 'owner';
+    }
+    match /products/{id} {
+      // Catalogue data is public, including hidden entries; never store private notes here.
+      allow read: if true;
+      allow create, update: if editor() && request.resource.data.keys().hasOnly(['id','name','state','weave','fabric','color','colorName','occasion','price','mrp','stock','blouse','length','desc','cert','img','featured','hidden','order','updatedAt']) && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 160 && request.resource.data.price is number && request.resource.data.price >= 0 && request.resource.data.mrp is number && request.resource.data.mrp >= 0 && request.resource.data.stock in ['in','made','out'] && request.resource.data.img is list && request.resource.data.img.size() <= 12 && request.resource.data.hidden is bool && request.resource.data.featured is bool;
+      allow delete: if editor();
+    }
+    match /site/config {
+      allow read: if true;
+      allow create, update: if editor() && request.resource.data.keys().hasOnly(['states','photos','updatedAt']) && (!('states' in request.resource.data) || (request.resource.data.states is list && request.resource.data.states.size() > 0)) && (!('photos' in request.resource.data) || (request.resource.data.photos is map && !('logo' in request.resource.data.photos)));
+    }
+  }
+}

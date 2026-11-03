@@ -1,0 +1,6 @@
+// Deliberately cache only the static admin shell, never credentials or live records.
+const CACHE='ekadashi-admin-v1';
+const SHELL=['/ekadashi/admin.html','/ekadashi/admin-style.css','/ekadashi/admin.mjs','/ekadashi/admin-core.mjs','/ekadashi/admin-defaults.mjs','/ekadashi/admin-manifest.json','/ekadashi/img/logo-stacked-maroon.svg','/ekadashi/img/logo-mark-gold.svg','/ekadashi/img/icon-192.png','/ekadashi/img/icon-512.png'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('ekadashi-admin-')&&k!==CACHE).map(k=>caches.delete(k))))));
+self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==location.origin)return;if(u.pathname==='/ekadashi/admin-config.js'){e.respondWith(fetch(e.request).catch(()=>new Response('window.EKADASHI_FIREBASE={};',{headers:{'Content-Type':'application/javascript'}})));return;}if(!SHELL.includes(u.pathname))return;e.respondWith(fetch(e.request).then(r=>{if(r.ok){const copy=r.clone();e.waitUntil(caches.open(CACHE).then(c=>c.put(u.pathname,copy)));}return r;}).catch(()=>caches.match(u.pathname)));});

@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function editor() {
+      let member = firestore.get(/databases/(default)/documents/admins/$(request.auth.token.email.lower())).data;
+      return request.auth.token.email_verified == true && member.enabled == true && member.uid == request.auth.uid && member.role in ['owner','editor'];
+    }
+    match /catalogue/{file} {
+      allow read: if true;
+      allow create: if request.auth != null && editor() && request.resource.size < 8 * 1024 * 1024 && request.resource.contentType == 'image/jpeg';
+      // Removing a catalogue image doesn't erase a file used by another product.
+      allow update, delete: if false;
+    }
+  }
+}

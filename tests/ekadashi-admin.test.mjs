@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {product,collection,backup,photoUrl,esc} from '../ekadashi/admin-core.mjs';
+import {STATES,PHOTOS} from '../ekadashi/admin-defaults.mjs';
+const p={id:1,name:'Banarasi Silk',state:'uttar-pradesh',price:12000,mrp:14000,img:[],occasion:['Wedding']};
+test('reject invalid prices, IDs, states and unsafe images',()=>{for(const patch of [{price:-1},{price:Infinity},{mrp:100},{id:NaN},{state:'unknown'},{img:['javascript:alert(1)']},{img:['//attacker.example/x']},{img:['data:image/svg+xml;base64,xxx']}])assert.throws(()=>product({...p,...patch},STATES));});
+test('draft photos cannot enter live product payload',()=>{const img=['data:image/jpeg;base64,YWJj'];assert.equal(product({...p,img},STATES,true).img.length,1);assert.throws(()=>product({...p,img},STATES,false));});
+test('roundtrip valid draft backup and reject wrong brands/duplicates',()=>{const data={products:[product(p,STATES)],config:{states:STATES.map(collection),photos:PHOTOS}};assert.deepEqual(backup({brand:'Ekadashi Heritage',version:1,data}),data);assert.throws(()=>backup({brand:'SR Handicraft',version:1,data}));assert.throws(()=>backup({brand:'Ekadashi Heritage',version:1,data:{...data,products:[p,p]}}));});
+test('lock logo and drop unexpected fields from backups',()=>{const b=backup({brand:'Ekadashi Heritage',version:1,data:{products:[{...p,secret:'not catalogue data'}],config:{states:STATES,photos:{logo:['https://example.com/x.jpg']}}}});assert.equal(b.products[0].secret,undefined);assert.equal(b.config.photos.logo,undefined);});
+test('escape HTML and restrict collections',()=>{assert.equal(esc('<img onerror="x">'),'&lt;img onerror=&quot;x&quot;&gt;');assert.throws(()=>collection({key:'<script>',name:'bad'}));assert.equal(photoUrl('https://example.com/a.jpg'),'https://example.com/a.jpg');});
+test('every inline storefront script parses and Firebase stays disconnected',()=>{for(const file of ['ekadashi/index.html','ekadashi/darbar/index.html']){const s=fs.readFileSync(file,'utf8');for(const m of s.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)){if(m[0].includes('application/ld+json'))continue;new vm.Script(m[1]);}assert.ok(s.includes('window.EKADASHI_FIREBASE'));}const sandbox={window:{}};vm.runInNewContext(fs.readFileSync('ekadashi/admin-config.js','utf8'),sandbox);assert.equal(sandbox.window.EKADASHI_FIREBASE.projectId,'');});
+test('service worker assets exist and scope avoids other projects',()=>{const m=JSON.parse(fs.readFileSync('ekadashi/admin-manifest.json'));assert.equal(m.scope,'/ekadashi/');assert.equal(m.start_url,'/ekadashi/admin.html');for(const icon of m.icons)assert.ok(fs.existsSync('.'+icon.src));});
