@@ -4,7 +4,7 @@ Admin: `/ekadashi/admin.html`. Public shop: `/ekadashi/darbar/`.
 
 ## Current state
 
-Mobile-installable panel with a local IndexedDB draft catalogue. The public Firebase web config is intentionally empty: no Ekadashi Firebase project or owner account was available in the connected repository or Vercel project. Drafts never update the shop and are not shared between devices. The screen explicitly labels this state. Products start empty; no sample inventory is imported. Brand logo and maroon theme are locked.
+Mobile-installable panel with a local IndexedDB draft catalogue. The public Firebase web config is intentionally empty: no Ekadashi Firebase project or owner account was available in the connected repository or Vercel project. Drafts never update the shop and are not shared between devices. The screen explicitly labels this state. The existing Darbar website demo catalogue is imported into device drafts once, including its current prices and photo links. Existing draft edits are preserved; deleting a draft product does not re-import it on reopen. This does not import demo products into any live database. Each product has a direct Edit price button. Brand logo and maroon theme are locked.
 
 Features: saree CRUD, price/MRP, availability, weave, fabric, occasions, dimensions, blouse, featured/hidden flags, ordered compressed photo uploads, website banner and collection photos, states/weaves, backup export and draft-only restore. Secure live sign-in, verified invitation binding, password reset/change and owner team controls are implemented but require backend activation and end-to-end testing. No credentials are in these files.
 

@@ -25,3 +25,14 @@ export function backup(raw){
  const photos={};for(const [k,v] of Object.entries(raw.data.config.photos||{})){if(k==='logo'||! /^[\w -]{1,50}$/.test(k))continue;if(!Array.isArray(v)||v.some(x=>!photoUrl(x,true)))throw Error('Invalid photo in backup.');photos[k]=v.slice(0,12);}
  return {products,config:{states,photos}};
 }
+
+// Merge once: preserve user edits and custom products. A persisted marker prevents
+// deleted website entries from reappearing on subsequent opens.
+export function seedWebsiteDraft(data, websiteProducts, defaultStates){
+ const next=clone(data), knownStates=new Set(next.config.states.map(s=>s.key));
+ next.config.states.push(...defaultStates.filter(s=>!knownStates.has(s.key)).map(collection));
+ const ids=new Set(next.products.map(p=>p.id));
+ next.products.push(...websiteProducts.filter(p=>!ids.has(p.id)).map((p,i)=>product({...p,order:p.order??i},next.config.states,true)));
+ next.websiteCatalogueSeeded=true;
+ return next;
+}
