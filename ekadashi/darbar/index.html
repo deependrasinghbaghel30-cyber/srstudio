@@ -432,25 +432,84 @@ body.pdp-on .mbar{display:none}
 :root[data-look="darbar"] footer .bot,:root[data-look="darbar"] footer hr{border-color:rgba(212,176,114,.22)}
 :root[data-look="darbar"] .mbar{background:#4A1026;border-top-color:rgba(212,176,114,.28)}
 :root[data-look="darbar"] header.top,:root[data-look="darbar"] .mega,:root[data-look="darbar"] .mbar,:root[data-look="darbar"] footer{--ink:#F5E9D4;--muted:#D8C2A6;--line:rgba(212,176,114,.3);--zari:#E2BE6E;--kum:#F3D47E;--paper:#4A1026;--soft:#5A1430;color:var(--ink)}
-.dhero{position:relative;overflow:hidden;background:#0E0A09}
-.dtrip{display:grid;grid-template-columns:1fr;height:clamp(560px,88vh,880px)}
-@media(min-width:760px){.dtrip{grid-template-columns:1fr 1.25fr 1fr;gap:3px}}
-.dtrip>div,.dtrip>.rot{position:relative;overflow:hidden;display:block}
-.dtrip .rot img{position:absolute;inset:0}
-.dtrip .rot img.in{opacity:0;transition:opacity 1.4s ease}
-.dtrip .rot img.in.on{opacity:1}
-.dtrip .rcap{position:absolute;z-index:3;left:0;right:0;top:22px;text-align:center;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#E9D3A0;text-shadow:0 1px 8px rgba(0,0,0,.7);transition:opacity .6s ease}
-.dtrip>*:not(:nth-child(2)){display:none}
-@media(min-width:760px){.dtrip>*:not(:nth-child(2)){display:block}}
-.dtrip svg,.dtrip img{width:100%;height:100%;object-fit:cover;display:block}
-@media (prefers-reduced-motion: no-preference){.dtrip svg,.dtrip img{animation:slowzoom 18s ease-out both}}
-@keyframes slowzoom{from{transform:scale(1.12)}}
-.dhero::after{content:"";position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 45%,rgba(14,10,9,.15),rgba(14,10,9,.78)),linear-gradient(180deg,rgba(14,10,9,.55) 0%,transparent 30%,transparent 50%,rgba(14,10,9,.95) 100%);pointer-events:none}
-.dcap{position:absolute;left:0;right:0;bottom:0;z-index:2;text-align:center;padding-bottom:64px;color:#F2E4C6}
-.dcap .eyebrow{color:#D9B877}
-.dcap h1{font-size:clamp(42px,6.6vw,92px);font-weight:400;margin:14px 0 26px;line-height:1.02;color:#F6EAD3}
-.dcap h1 em{color:#D9B877}
-.dcap .ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+/* Editorial refresh: preserve the existing logo, header and maroon palette. */
+.dhero{position:relative;overflow:hidden;background:linear-gradient(115deg,#3E0C20,#4A1026 65%,#5E1636);color:#F6EAD3}
+.dhero::after{content:"";position:absolute;inset:auto 0 0;height:1px;background:rgba(212,176,114,.55)}
+.dhero-inner{max-width:1440px;margin:auto;display:grid;grid-template-columns:1fr 1fr;min-height:600px}
+.dcopy{padding:64px clamp(28px,5vw,76px);align-self:center;position:relative}
+.dcopy .eyebrow{color:#E2BE6E;font-size:11px;letter-spacing:.24em}
+.dcopy h1{font-size:clamp(48px,5.7vw,82px);font-weight:500;line-height:1.03;margin:26px 0;color:#F6EAD3;letter-spacing:-.025em;text-wrap:initial}
+.dcopy h1 em{display:block;color:#D9B877;font-weight:500}
+.dcopy .lede{font-size:17px;line-height:1.7;color:#E4D0BF;max-width:37ch;margin:0 0 30px}
+.dcopy .ctas{display:flex;gap:16px 22px;align-items:center;flex-wrap:wrap}
+.dcopy .hero-help{display:inline-flex;gap:8px;align-items:center;color:#F6EAD3;font-size:13px;border-bottom:1px solid rgba(212,176,114,.6);padding:10px 0}
+.hero-help svg{width:17px;height:17px}
+.dcopy .hero-note{margin:36px 0 0;padding-top:18px;border-top:1px solid rgba(212,176,114,.3);font-size:12px;letter-spacing:.06em;color:#D8C2A6;max-width:38ch}
+.dvisual{position:relative;min-width:0;margin:0;background:#e6ddce;display:block;overflow:hidden}
+.dvisual>img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:center top}
+.dvisual .visual-label{position:absolute;bottom:24px;left:24px;right:24px;background:rgba(62,12,32,.94);border:1px solid rgba(212,176,114,.45);padding:15px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;color:#F6EAD3}
+.visual-label small{display:block;color:#E2BE6E;font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:3px}
+.visual-label b{font:500 24px/1.2 var(--display)}
+.visual-label .arrow{font-size:24px;color:#E2BE6E}
+.hero-weaves{max-width:1440px;margin:auto;display:flex;gap:12px 28px;justify-content:center;align-items:center;flex-wrap:wrap;padding:16px 24px;border-top:1px solid rgba(212,176,114,.25)}
+.hero-weaves>span{font-size:10px;letter-spacing:.18em;color:#D8C2A6;text-transform:uppercase}
+.hero-weaves a{font-family:var(--display);font-size:20px;color:#F6EAD3}
+.hero-weaves a:hover{color:#E2BE6E}
+.home-on .loom{display:none}
+.section-intro{max-width:48ch;margin:8px auto 0;color:var(--muted);font-size:16px}
+.edits{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:auto;gap:20px}
+.edits a,.edits a:first-child{display:block;min-height:0;grid-row:auto;background:var(--soft);color:var(--ink)}
+.edits a>img,.edits a>svg{position:static;aspect-ratio:3/4;width:100%;height:auto;object-fit:cover;object-position:top}
+.edits a::before,.edits a::after{display:none}
+.edits a:hover>img,.edits a:hover>svg{transform:none}
+.edits .t{padding:22px 20px 24px;border-top:1px solid var(--line)}
+.edits .t .eyebrow{color:#805923;font-size:10px;letter-spacing:.15em}
+.edits .t b{font-size:28px;margin:8px 0;line-height:1.15}
+.edits .t small{color:var(--muted);line-height:1.5;opacity:1;min-height:42px}
+.edits .t i{color:#4A1026;border-color:var(--zari);margin-top:16px}
+.card .ph{display:block;aspect-ratio:3/4;background:#F8F2EA}
+.card .ph img{object-position:top}
+.card .info{padding:17px 0 0;gap:7px}
+.card .loc{font-size:10px;letter-spacing:.12em;color:#805923}
+.card .nm{font-size:23px;line-height:1.2;min-height:2.4em}
+.card .fabric{font-size:13px;color:var(--muted)}
+.card .price b{font-size:16px;font-weight:600;color:#4A1026}
+.card .card-details{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:14px;padding:12px 0;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#4A1026}
+.card .card-details span{font-size:20px;line-height:1}
+.card .wsh{background:rgba(255,253,249,.96);border-radius:50%;color:#4A1026;filter:none;width:40px;height:40px;top:12px;right:12px;box-shadow:0 2px 10px rgba(62,12,32,.08)}
+.card .wsh.on svg{fill:#4A1026}
+.card:focus-within .ph img{transform:scale(1.04)}
+.state-links{display:flex;justify-content:center;margin:32px 0 0}
+.home-on #states .sgrid{gap:32px 24px}
+.home-on #states .sgrid>.st{flex-basis:calc((100% - 72px)/4)}
+.home-on #states .st .arch{aspect-ratio:3/3.8}
+.home-on #states .st small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.detail-tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.detail-tools .btn{padding:12px 16px;font-size:11px;min-height:44px}
+.detail-tools a{font-size:13px;text-decoration:underline;text-underline-offset:4px;color:#4A1026}
+.gal .main{overflow:hidden}
+.gal .main img{transition:transform .35s ease;transform-origin:50% 45%}
+.gal .main.zoomed img{transform:scale(1.8)}
+@media(min-width:1400px){.dhero-inner{min-height:680px}}
+@media(max-width:999px){.dhero-inner{min-height:540px}.dcopy{padding:44px 28px}.dcopy h1{font-size:54px}.edits{grid-template-columns:repeat(2,minmax(0,1fr))}.edits .t small{min-height:0}}
+@media(max-width:699px){
+ .dhero-inner{grid-template-columns:1fr;min-height:0}
+ .dcopy{padding:30px 24px 32px}.dcopy .eyebrow{font-size:9px;letter-spacing:.17em}
+ .dcopy h1{font-size:clamp(42px,10.7vw,64px);margin:18px 0;line-height:1.02}
+ .dcopy .lede{font-size:15px;line-height:1.5;margin-bottom:22px;max-width:39ch}
+ .dcopy .ctas{gap:10px 20px}.dcopy .btn{padding:14px 19px;font-size:11px}
+ .dcopy .hero-note{display:none}
+ .dvisual{aspect-ratio:3/3.75}.dvisual>img{object-fit:cover;object-position:top}
+ .dvisual .visual-label{left:16px;right:16px;bottom:16px;padding:12px 16px}.visual-label b{font-size:22px}
+ .hero-weaves{gap:6px 18px;padding:14px 16px}.hero-weaves>span{width:100%;text-align:center;font-size:9px}.hero-weaves a{font-size:18px}
+ .edits{gap:14px}.edits .t{padding:15px 12px 18px}.edits .t b{font-size:24px}.edits .t small{font-size:12px;min-height:54px}.edits .t .eyebrow{font-size:9px;letter-spacing:.1em}.edits .t i{font-size:10px}
+ .card .nm{font-size:20px}.card .loc{font-size:9px;letter-spacing:.08em}.card .fabric{font-size:12px}.card .price b{font-size:15px}
+ .card .wsh{width:38px;height:38px;top:8px;right:8px}.card .card-details{font-size:10px;margin-top:10px}
+ .home-on #states .sgrid{gap:26px 16px}.home-on #states .sgrid>.st{flex-basis:calc((100% - 16px)/2)}
+ .home-on .sh2{margin-bottom:24px}.home-on .blk{padding-top:56px}.home-on .sh2 h2{font-size:36px}
+}
+@media(max-width:360px){header.top .hrow{gap:4px;padding-left:12px;padding-right:12px}header.top .ib{width:32px}header.top .hl,header.top .hr{gap:0}}
+@media(prefers-reduced-motion:reduce){.gal .main img,.card .ph img,.edits a>img{transition:none}.card:hover .ph img,.card:focus-within .ph img{transform:none}}
 </style>
 </head>
 <body>
@@ -555,6 +614,7 @@ const PHOTOS = {
   state_rajasthan: ["/ekadashi/img/model-bandhani.jpg"],
   state_kerala: ["/ekadashi/img/model-kasavu.jpg"],
   edit_cotton: ["/ekadashi/img/model-kasavu.jpg"],
+  edit_gifting: ["/ekadashi/img/model-chanderi.jpg"],
   "state_west-bengal": ["/ekadashi/img/model-tant.jpg"],
   state_telangana: ["/ekadashi/img/model-pochampally.jpg"],
   state_odisha: ["/ekadashi/img/model-sambalpuri.jpg"],
@@ -773,7 +833,9 @@ function card(p){
     ${p.stock !== "out" ? `<a class="qo" target="_blank" rel="noopener" href="${wa(`Hi Ekadashi Heritage, I'd like to order this saree:\n${p.name}\nCode: ${code(p.id)}\nPrice: ${pr(p)}\n${pageUrl(p.id)}`)}">${ICO.wa}Order on WhatsApp</a>` : ""}</div>
     <button class="wsh${on ? " on" : ""}" data-wish="${p.id}" aria-label="${on ? "Remove from wishlist" : "Save to wishlist"}">${ICO.heart}</button>
     <a href="#/p/${p.id}" class="info"><div class="loc">${esc(st ? st.name : "")} · ${esc(p.weave)}</div><div class="nm">${esc(p.name)}</div>
+      <div class="fabric">${esc(p.fabric)}${p.blouse ? " · Blouse piece included" : ""}</div>
       <div class="price"><b>${pr(p)}</b>${off ? `<s>${inr(p.mrp)}</s><span class="off">${off}% off</span>` : ""}</div></a>
+    <a class="card-details" href="#/p/${p.id}">View saree details <span aria-hidden="true">↗</span></a>
   </article>`;
 }
 const countIn = k => P.filter(p => p.state === k).length;
@@ -788,7 +850,8 @@ function stateTile(s){
 const EDITS = [
   { key: "bridal", name: "The Bridal Edit", sub: "Banarasi, Kanjivaram and Paithani silks for the big day", art: "uttar-pradesh", f: p => (p.occasion || []).includes("Wedding") && p.price >= 10000 },
   { key: "festive", name: "The Festive Edit", sub: "Silk and zari for Diwali and every puja", art: "maharashtra", f: p => (p.occasion || []).includes("Festive") },
-  { key: "cotton", name: "Handloom Cottons", sub: "Tant, Kasavu, Kota Doria and Mangalagiri", art: "kerala", f: p => p.fabric === "Cotton" }
+  { key: "cotton", name: "Everyday Elegance", sub: "Airy cottons for beautifully ordinary days", art: "kerala", f: p => p.fabric === "Cotton" },
+  { key: "gifting", name: "The Gifting Edit", sub: "A thoughtful saree, chosen with love", art: "madhya-pradesh", f: p => p.price > 0 && p.price < 5000 }
 ];
 const PRICE_EDITS = { "under-5000": ["Under ₹5,000", p => p.price > 0 && p.price < 5000], "5000-15000": ["₹5,000 – ₹15,000", p => p.price >= 5000 && p.price <= 15000], "above-15000": ["Above ₹15,000", p => p.price > 15000] };
 const SPOTLIGHT = { state: "uttar-pradesh", weave: "Banarasi Silk", place: "Varanasi",
@@ -846,12 +909,22 @@ function home(){
   const loomItems = vs.flatMap(s => (s.weaves || []).slice(0, 2).map(w => `<a href="#/state/${s.key}">${esc(w)}<small>${esc(s.name)}</small></a><span class="dot" aria-hidden="true">✦</span>`)).join("");
   const nWeaves = vs.reduce((a, s) => a + (s.weaves || []).length, 0);
   const darbar = STORE.look === "darbar";
-  const trip = ["maharashtra", "uttar-pradesh", "tamil-nadu"].map(stateOf).filter(Boolean);
-  const pool = heroPool();
-  const dHero = `<section class="dhero"><div class="dtrip">${trip.map((s, i) => { const k = [1, 0, 2][i]; const it = pool[k]; return it ? `<a class="rot" data-k="${k}" href="#/state/${it.state}" aria-label="${esc(it.label)}"><img src="${esc(it.src)}" alt=""><span class="rcap">${esc(it.label)}</span></a>` : `<div>${sareeArt(s, { w: 480, h: 860, scale: 1.9, label: s.weaves[0] })}</div>`; }).join("")}</div>
-    <div class="dcap wrap"><div class="eyebrow">Connecting threads of Bharat · ${vs.length} states</div>
-      <h1>Woven in India.<br><em>Worn for generations.</em></h1>
-      <div class="ctas"><a class="btn gold" href="#/states">Explore the collection</a><a class="btn line" href="${wa("Hi Ekadashi Heritage, I'm looking for a saree. Can you help me choose?")}" target="_blank" rel="noopener">${ICO.wa}Talk to us</a></div></div></section>`;
+  const leadPhoto = heroPool()[0];
+  const leadProduct = leadPhoto && P.find(p => pics(p).includes(leadPhoto.src));
+  const leadHref = leadProduct ? `#/p/${leadProduct.id}` : "#/s/all";
+  const dHero = `<section class="dhero" aria-label="The Ekadashi collection"><div class="dhero-inner">
+    <div class="dcopy"><div class="eyebrow">Connecting threads of Bharat · ${vs.length} states</div>
+      <h1>Bharat ki bunai.<em>Aapki pehchaan.</em></h1>
+      <p class="lede">From treasured silks to everyday cottons. Discover a saree that feels like you.</p>
+      <div class="ctas"><a class="btn gold" href="#/s/all">Explore sarees <span aria-hidden="true">↗</span></a><a class="hero-help" href="${wa("Hi Ekadashi Heritage, I'm looking for a saree. Can you help me choose?")}" target="_blank" rel="noopener">${ICO.wa}Help me choose</a></div>
+      <p class="hero-note">Explore by weave. See real photos on request.<br>Choose personally with us on WhatsApp.</p>
+    </div>
+    <a class="dvisual" href="${leadHref}" aria-label="${esc(leadProduct ? leadProduct.name : "Explore sarees")}">
+      ${leadPhoto ? `<img src="${esc(leadPhoto.src)}" alt="${esc(leadProduct ? leadProduct.name : "Ekadashi saree collection")}" fetchpriority="high" loading="eager" width="1200" height="1600">` : sareeArt(spot || STATES[0], {w:600,h:800})}
+      <span class="visual-label"><span><small>The heritage collection</small><b>${esc(leadPhoto?.label || "Explore the weaves of India")}</b></span><span class="arrow" aria-hidden="true">↗</span></span>
+    </a></div>
+    <div class="hero-weaves"><span>A few of our timeless weaves</span>${["uttar-pradesh","tamil-nadu","maharashtra","gujarat"].map(stateOf).filter(s => s && !s.hidden).map(s => `<a href="#/state/${s.key}">${esc(s.weaves[0])}</a>`).join("")}</div>
+  </section>`;
   return `
   ${darbar ? dHero : `<section class="hero"><div class="wrap hin">
     <div class="eyebrow">Connecting threads of Bharat</div>
@@ -870,17 +943,21 @@ function home(){
   </div></div>
 
   <div class="wrap">
-  <section class="blk" id="states">
-    <div class="sh2"><div class="eyebrow">Shop by state</div><h2>A weave from every corner of India</h2><div class="orn"><i>✦</i></div></div>
-    <div class="rtabs" role="tablist">${regions.map(r => `<button data-region="${r}" class="${r === REGION ? "on" : ""}" role="tab" aria-selected="${r === REGION}">${r}</button>`).join("")}</div>
-    <div class="sgrid">${shown.map(stateTile).join("")}</div>
+
+
+  <section class="blk"><div class="sh2"><div class="eyebrow">Curated for you</div><h2>A saree for your every story</h2><p class="section-intro">The celebration. The everyday. The perfect gift.</p></div>
+    <div class="edits">${EDITS.map(e => `<a href="#/edit/${e.key}">${(PHOTOS["edit_" + e.key] || [])[0] ? `<img src="${esc(PHOTOS["edit_" + e.key][0])}" alt="" loading="lazy">` : sareeArt(stateOf(e.art) || STATES[0], { w: 700, h: 520, scale: 2, label: e.name })}<div class="t"><div class="eyebrow">${P.filter(e.f).length ? P.filter(e.f).length + " sarees" : "Ask us"}</div><b>${esc(e.name)}</b><small>${esc(e.sub)}</small><i>Explore</i></div></a>`).join("")}</div>
+    <div class="pricechips"><a href="#/edit/under-5000">Under ₹5,000</a><a href="#/edit/5000-15000">₹5,000 – ₹15,000</a><a href="#/edit/above-15000">Above ₹15,000</a></div>
   </section>
 
   ${feat.length ? `<section class="blk"><div class="sh2"><div class="eyebrow">Handpicked</div><h2>The Ekadashi edit</h2><a class="more" href="#/s/all">View all sarees</a></div><div class="rail">${feat.map(card).join("")}</div></section>` : ""}
 
-  <section class="blk"><div class="sh2"><div class="eyebrow">Curated for you</div><h2>The Edits</h2><div class="orn"><i>✦</i></div></div>
-    <div class="edits">${EDITS.map(e => `<a href="#/edit/${e.key}">${(PHOTOS["edit_" + e.key] || [])[0] ? `<img src="${esc(PHOTOS["edit_" + e.key][0])}" alt="" loading="lazy">` : sareeArt(stateOf(e.art) || STATES[0], { w: 700, h: 520, scale: 2, label: e.name })}<div class="t"><div class="eyebrow">${P.filter(e.f).length ? P.filter(e.f).length + " sarees" : "Ask us"}</div><b>${esc(e.name)}</b><small>${esc(e.sub)}</small><i>Explore</i></div></a>`).join("")}</div>
-    <div class="pricechips"><a href="#/edit/under-5000">Under ₹5,000</a><a href="#/edit/5000-15000">₹5,000 – ₹15,000</a><a href="#/edit/above-15000">Above ₹15,000</a></div>
+
+  <section class="blk" id="states">
+    <div class="sh2"><div class="eyebrow">Shop by state</div><h2>A weave from every corner of India</h2><div class="orn"><i>✦</i></div></div>
+    <div class="rtabs" role="tablist">${regions.map(r => `<button data-region="${r}" class="${r === REGION ? "on" : ""}" role="tab" aria-selected="${r === REGION}">${r}</button>`).join("")}</div>
+    <div class="sgrid">${(REGION === "All" ? shown.slice(0,8) : shown).map(stateTile).join("")}</div>
+    <div class="state-links"><a class="btn ghost" href="#/states">Explore all ${vs.length} states <span aria-hidden="true">↗</span></a></div>
   </section>
   </div>
 
@@ -990,6 +1067,7 @@ function pdp(p){
   <div class="pdp">
     <div class="gal">
       <div class="main" id="gmain">${im.length ? `<img src="${esc(im[0])}" alt="${esc(p.name)}">` : sareeArt(st, { color: p.color, label: p.name, scale: 2 })}</div>
+      ${im.length ? `<div class="detail-tools"><button class="btn ghost" id="zoomSaree" aria-controls="gmain" aria-pressed="false">Zoom saree details</button><a target="_blank" rel="noopener" href="${wa(`Hi, please share real close-up photos of the border, pallu and fabric of ${p.name} (${code(p.id)}).`)}">Ask for border &amp; pallu photos</a></div>` : ""}
       ${im.length > 1 ? `<div class="th">${im.map((u, i) => `<button data-gi="${i}" class="${i ? "" : "on"}" aria-label="Photo ${i + 1}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}
       ${im.length ? "" : `<div class="note">Pattern preview — real photos of this saree on request. <a target="_blank" rel="noopener" href="${wa(`Hi, please send real photos of ${p.name} (${code(p.id)}).`)}">Ask for photos</a></div>`}
     </div>
@@ -1144,6 +1222,12 @@ function route(){
 function rerender(){ const y = scrollY; route(); scrollTo(0, y); }
 function bindView(){
   startRot();
+  const zoom = $("#zoomSaree");
+  if (zoom) zoom.onclick = () => {
+    const active = $("#gmain").classList.toggle("zoomed");
+    zoom.setAttribute("aria-pressed", String(active));
+    zoom.textContent = active ? "Show full saree" : "Zoom saree details";
+  };
   document.querySelectorAll("[data-region]").forEach(b => b.onclick = () => { REGION = b.dataset.region; rerender(); });
   const so = $("#sort"); if (so) { so.value = LST.sort; so.onchange = () => { LST.sort = so.value; rerender(); }; }
   document.querySelectorAll("[data-f]").forEach(i => i.onchange = () => {
