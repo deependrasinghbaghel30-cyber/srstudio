@@ -445,6 +445,12 @@ body.pdp-on .mbar{display:none}
 .dcopy .hero-help{display:inline-flex;gap:8px;align-items:center;color:#F6EAD3;font-size:13px;border-bottom:1px solid rgba(212,176,114,.6);padding:10px 0}
 .hero-help svg{width:17px;height:17px}
 .dcopy .hero-note{margin:36px 0 0;padding-top:18px;border-top:1px solid rgba(212,176,114,.3);font-size:12px;letter-spacing:.06em;color:#D8C2A6;max-width:38ch}
+.dvisual-frame{position:relative;display:grid;min-width:0}
+.drotation{position:absolute;top:16px;right:16px;z-index:3;min-height:40px;padding:9px 14px;background:#4A1026;color:#F6EAD3;border:1px solid #D4B072;font:500 12px var(--body);letter-spacing:.04em;cursor:pointer}
+.dvisual>img.incoming{opacity:0;transition:opacity .9s ease}
+.dvisual>img.incoming.on{opacity:1}
+.dvisual .visual-label{z-index:2}
+@media(prefers-reduced-motion:reduce){.dvisual>img.incoming{transition:none}}
 .dvisual{position:relative;min-width:0;margin:0;background:#e6ddce;display:block;overflow:hidden}
 .dvisual>img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:center top}
 .dvisual .visual-label{position:absolute;bottom:24px;left:24px;right:24px;background:rgba(62,12,32,.94);border:1px solid rgba(212,176,114,.45);padding:15px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;color:#F6EAD3}
@@ -868,29 +874,50 @@ function heroPool(){
   P.filter(p => pics(p).length && visStates().some(s => s.key === p.state)).forEach(p => add(pics(p)[0], p.state, `${p.weave} · ${stateOf(p.state)?.name || ""}`));
   return out;
 }
-let ROT = 0;
+let ROT = 0, ROT_GENERATION = 0;
+let rotationPaused = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function startRot(){
   clearInterval(ROT);
-  const slots = [...document.querySelectorAll(".dtrip .rot")];
-  if (!slots.length) return;
+  const generation = ++ROT_GENERATION;
+  const el = document.querySelector(".dvisual"), control = document.querySelector("#heroRotation");
+  if (!el || !control) return;
   const pool = heroPool();
-  if (pool.length <= slots.length) return;
-  let next = Math.max(...slots.map(s => +s.dataset.k)) + 1, turn = 0;
-  const order = [1, 0, 2];
+  if (pool.length < 2) { control.hidden = true; return; }
+  let next = 1, loading = false;
+  const updateControl = () => {
+    control.textContent = rotationPaused ? "▶ Play slideshow" : "Ⅱ Pause slideshow";
+    control.setAttribute("aria-label", rotationPaused ? "Play saree slideshow" : "Pause saree slideshow");
+  };
+  control.onclick = () => { rotationPaused = !rotationPaused; updateControl(); };
+  updateControl();
   ROT = setInterval(() => {
-    if (document.hidden) return;
-    const vis = order.map(n => slots[n]).filter(s => s && s.offsetParent !== null);
-    if (!vis.length || !document.body.contains(vis[0])) return clearInterval(ROT);
-    const el = vis[turn++ % vis.length], it = pool[next % pool.length]; next++;
-    const im = new Image(); im.alt = ""; im.src = it.src; im.className = "in";
+    if (!el.isConnected || generation !== ROT_GENERATION) return clearInterval(ROT);
+    if (document.hidden || rotationPaused || loading || el.matches(":hover, :focus-within")) return;
+    const it = pool[next++ % pool.length];
+    const product = P.find(p => pics(p).includes(it.src));
+    const im = new Image();
+    im.alt = product ? product.name : (it.label || "Ekadashi saree collection");
+    im.className = "incoming";
+    loading = true;
+    const deadline = setTimeout(() => { im.onload = null; im.onerror = null; loading = false; }, 10000);
+    im.onerror = () => { clearTimeout(deadline); loading = false; };
     im.onload = () => {
+      clearTimeout(deadline);
+      if (!el.isConnected || generation !== ROT_GENERATION || rotationPaused) { loading = false; return; }
       el.appendChild(im);
+      el.href = product ? "#/p/" + product.id : it.state ? "#/state/" + it.state : "#/s/all";
+      el.setAttribute("aria-label", im.alt);
+      el.querySelector(".visual-label b").textContent = it.label || "Explore the weaves of India";
       requestAnimationFrame(() => requestAnimationFrame(() => im.classList.add("on")));
-      setTimeout(() => { el.querySelectorAll("img:not(:last-of-type)").forEach(x => x.remove()); im.classList.remove("in", "on"); }, 1500);
-      el.href = "#/state/" + it.state; el.setAttribute("aria-label", it.label);
-      const c = el.querySelector(".rcap"); if (c) { el.appendChild(c); c.style.opacity = 0; setTimeout(() => { c.textContent = it.label; c.style.opacity = ""; }, 700); }
+      setTimeout(() => {
+        if (generation !== ROT_GENERATION || !el.isConnected) return;
+        el.querySelectorAll(":scope > img").forEach(old => { if (old !== im) old.remove(); });
+        im.classList.remove("incoming", "on");
+        loading = false;
+      }, 1000);
     };
-  }, 3200);
+    im.src = it.src;
+  }, 4000);
 }
 function home(){
   const vs = visStates();
@@ -919,10 +946,10 @@ function home(){
       <div class="ctas"><a class="btn gold" href="#/s/all">Explore sarees <span aria-hidden="true">↗</span></a><a class="hero-help" href="${wa("Hi Ekadashi Heritage, I'm looking for a saree. Can you help me choose?")}" target="_blank" rel="noopener">${ICO.wa}Help me choose</a></div>
       <p class="hero-note">Explore by weave. See real photos on request.<br>Choose personally with us on WhatsApp.</p>
     </div>
-    <a class="dvisual" href="${leadHref}" aria-label="${esc(leadProduct ? leadProduct.name : "Explore sarees")}">
+    <div class="dvisual-frame"><a class="dvisual" href="${leadHref}" aria-label="${esc(leadProduct ? leadProduct.name : "Explore sarees")}">
       ${leadPhoto ? `<img src="${esc(leadPhoto.src)}" alt="${esc(leadProduct ? leadProduct.name : "Ekadashi saree collection")}" fetchpriority="high" loading="eager" width="1200" height="1600">` : sareeArt(spot || STATES[0], {w:600,h:800})}
       <span class="visual-label"><span><small>The heritage collection</small><b>${esc(leadPhoto?.label || "Explore the weaves of India")}</b></span><span class="arrow" aria-hidden="true">↗</span></span>
-    </a></div>
+    </a><button type="button" class="drotation" id="heroRotation" aria-label="Pause saree slideshow">Ⅱ Pause slideshow</button></div></div>
     <div class="hero-weaves"><span>A few of our timeless weaves</span>${["uttar-pradesh","tamil-nadu","maharashtra","gujarat"].map(stateOf).filter(s => s && !s.hidden).map(s => `<a href="#/state/${s.key}">${esc(s.weaves[0])}</a>`).join("")}</div>
   </section>`;
   return `
